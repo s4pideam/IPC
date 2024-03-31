@@ -204,6 +204,10 @@ class ClientHandler extends Thread {
                                 }
                             }
                         }
+                        if (currentOffset >= offsets.size() && (this.server.reduced.get(this.outputStream)  >= this.server.CLIENT_NUMBERS - 1)) {
+                            this.server.send(this.outputStream, EPackage.DONE, null);
+                            this.eClientStatus = EClientStatus.DONE;
+                        }
                         break;
                     case MERGE:
                         dataSize = this.inputStream.readInt();
@@ -218,8 +222,10 @@ class ClientHandler extends Thread {
                                 server.wordCount.compute(word, (k, v) -> (v == null) ? count : v + count);
                             }
                         }
-                        this.server.send(this.outputStream, EPackage.DONE, null);
-                        this.eClientStatus = EClientStatus.DONE;
+                        if (currentOffset >= offsets.size()) {
+                            this.server.send(this.outputStream, EPackage.DONE, null);
+                            this.eClientStatus = EClientStatus.DONE;
+                        }
                     default:
                         break;
                 }
