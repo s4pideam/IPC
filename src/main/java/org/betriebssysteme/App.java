@@ -14,7 +14,7 @@ public class App {
         String HOST = "localhost";
         int CHUNK_SIZE = 4096;
         int PORT = 42069;
-        int CLIENT_NUMBERS = 2;
+        int CLIENT_NUMBERS = 3;
 
         if (args.length > 0) {
             if (args[0].equals("s")) {

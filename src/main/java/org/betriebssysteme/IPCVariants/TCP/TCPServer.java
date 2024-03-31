@@ -205,8 +205,7 @@ class ClientHandler extends Thread {
                             }
                         }
                         if (currentOffset >= offsets.size() && (this.server.reduced.get(this.outputStream)  >= this.server.CLIENT_NUMBERS - 1)) {
-                            this.server.send(this.outputStream, EPackage.DONE, null);
-                            this.eClientStatus = EClientStatus.DONE;
+                            this.server.send(this.outputStream, EPackage.MERGE, null);
                         }
                         break;
                     case MERGE:
