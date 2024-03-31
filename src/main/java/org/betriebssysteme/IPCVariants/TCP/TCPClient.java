@@ -179,6 +179,7 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                     byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
                     out.writeInt(bytes.length);
                     out.write(bytes);
+                    out.flush();
                     break;
                 default:
                     break;

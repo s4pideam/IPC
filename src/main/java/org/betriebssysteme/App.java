@@ -12,9 +12,9 @@ public class App {
     public static void main(String[] args) throws IOException {
         String FILE_PATH = "./mobydick.txt";
         String HOST = "localhost";
-        int CHUNK_SIZE = 4096;
+        int CHUNK_SIZE = 20000;
         int PORT = 42069;
-        int CLIENT_NUMBERS = 3;
+        int CLIENT_NUMBERS = 2;
 
         if (args.length > 0) {
             if (args[0].equals("s")) {

@@ -112,6 +112,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
                             && this.reduced.merge(out, 1, Integer::sum) >= this.CLIENT_NUMBERS - 1) {
                         out.writeByte(EPackage.MERGE.getValue());
                     }
+                    out.flush();
                     break;
                 case SHUFFLE:
                 case MERGE:
