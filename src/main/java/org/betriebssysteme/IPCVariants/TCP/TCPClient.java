@@ -1,10 +1,10 @@
 package org.betriebssysteme.IPCVariants.TCP;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -14,10 +14,10 @@ import org.betriebssysteme.Enum.EPackage;
 import org.betriebssysteme.Interfaces.IIPCClient;
 import org.betriebssysteme.Interfaces.ISendable;
 
-public class TCPClient implements IIPCClient, ISendable<OutputStream> {
+public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
     private Socket socket;
-    private OutputStream outputStream;
-    private InputStream inputStream;
+    private DataOutputStream outputStream;
+    private DataInputStream inputStream;
     private EClientStatus eClientStatus = EClientStatus.WORKING;
     private int PORT;
     private String HOST;
@@ -26,29 +26,12 @@ public class TCPClient implements IIPCClient, ISendable<OutputStream> {
     private int clientIndex = 0;
     private String[] alphabetSplit;
 
-    private EPackage lastHeader;
-
     private void associateKeys(String keys, HashMap<String, HashMap<String, Integer>> hashMap,
             HashMap<String, Integer> object) {
         hashMap.put(keys, object);
         for (char key : keys.toCharArray()) {
             hashMap.put(String.valueOf(key), object);
         }
-    }
-
-    private byte[] readPackage(InputStream inputStream) throws IOException {
-        byte[] subHeader = new byte[EPackage.PACKET_SIZE_LENGTH];
-        inputStream.read(subHeader);
-        int packetSize = ByteBuffer.wrap(subHeader).getInt();
-        byte[] data = new byte[packetSize];
-
-        int bytesRead;
-        int totalBytesRead = 0;
-        while (totalBytesRead < packetSize
-                && (bytesRead = inputStream.read(data, totalBytesRead, packetSize - totalBytesRead)) != -1) {
-            totalBytesRead += bytesRead;
-        }
-        return data;
     }
 
     private void countWords(String message) {
@@ -68,19 +51,26 @@ public class TCPClient implements IIPCClient, ISendable<OutputStream> {
     public void connect() {
         try {
             this.socket = new Socket(this.HOST, this.PORT);
-            this.outputStream = socket.getOutputStream();
-            this.inputStream = socket.getInputStream();
+            this.inputStream = new DataInputStream(this.socket.getInputStream());
+            this.outputStream = new DataOutputStream(this.socket.getOutputStream());
+
+            int dataSize;
+            byte[] data;
+            String message;
 
             while (eClientStatus != EClientStatus.DONE) {
-                byte header = (byte) inputStream.read();
+                byte header = inputStream.readByte();
                 if (header == -1) {
                     break;
                 }
-                lastHeader = EPackage.fromByte(header);
+
                 switch (EPackage.fromByte(header)) {
                     case INIT:
-                        byte[] data = this.readPackage(inputStream);
-                        String message = new String(data);
+                        dataSize = this.inputStream.readInt();
+                        data = new byte[dataSize];
+                        this.inputStream.readFully(data);
+                        message = new String(data, StandardCharsets.UTF_8);
+
                         String[] parts = message.split(EPackage.STRING_DELIMETER);
                         StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMETER);
                         this.clientIndex = Integer.parseInt(parts[0]);
@@ -92,9 +82,10 @@ public class TCPClient implements IIPCClient, ISendable<OutputStream> {
                         this.send(this.outputStream, EPackage.CONNECTED, null);
                         break;
                     case MAP:
-                        data = this.readPackage(inputStream);
-                        message = new String(data);
-                        // System.out.println("Client[" + this.clientIndex + "] received: " + message);
+                        dataSize = this.inputStream.readInt();
+                        data = new byte[dataSize];
+                        this.inputStream.readFully(data);
+                        message = new String(data, StandardCharsets.UTF_8);
                         this.countWords(message);
                         this.send(this.outputStream, EPackage.MAP, null);
                         break;
@@ -109,22 +100,23 @@ public class TCPClient implements IIPCClient, ISendable<OutputStream> {
                                 sj.add(key);
                                 sj.add(String.valueOf(this.wordCount.get(this.alphabetSplit[i]).get(key)));
                             }
-                            //this.wordCount.get(this.alphabetSplit[i]).clear();
+                            this.wordCount.get(this.alphabetSplit[i]).clear();
                         }
-                        System.out.println("Send Shuffle " + sj.toString().getBytes().length);
-                        this.send(this.outputStream, EPackage.SHUFFLE, sj.toString().getBytes());
+                        // System.out.println(sj.toString());
+                        this.send(this.outputStream, EPackage.SHUFFLE, sj.toString());
                         break;
                     case REDUCE:
                         String word;
                         String key;
-                        data = this.readPackage(inputStream);
-                        System.out.println("Received Reduce " + data.length);
-                        message = new String(data);
+                        dataSize = this.inputStream.readInt();
+                        data = new byte[dataSize];
+                        this.inputStream.readFully(data);
+                        message = new String(data, StandardCharsets.UTF_8);
                         parts = message.split(EPackage.STRING_DELIMETER);
                         if (parts.length > 1) {
                             for (int i = 0; i < parts.length; i += 2) {
-                                if(i+1 >= parts.length){
-                                    System.out.println("what?");
+                                if (i + 1 >= parts.length) {
+                                    // System.out.println("what?");
                                 }
                                 word = parts[i];
                                 key = String.valueOf(word.charAt(0));
@@ -140,8 +132,7 @@ public class TCPClient implements IIPCClient, ISendable<OutputStream> {
                             sj.add(entry.getKey());
                             sj.add(String.valueOf(entry.getValue()));
                         }
-                        data = sj.toString().getBytes();
-                        send(this.outputStream, EPackage.MERGE, data);
+                        send(this.outputStream, EPackage.MERGE, sj.toString());
                         break;
                     case DONE:
                         eClientStatus = EClientStatus.DONE;
@@ -175,28 +166,19 @@ public class TCPClient implements IIPCClient, ISendable<OutputStream> {
     }
 
     @Override
-    public void send(OutputStream out, EPackage header, byte[] bytes) {
+    public void send(DataOutputStream out, EPackage header, String message) {
         try {
-            int offset = 0;
-            int chunkSize = TCPMaxPacketSize.PACKET_SIZE;
-            int packetSize = (bytes != null) ? bytes.length : 0;
-            byte[] subHeader = ByteBuffer.allocate(EPackage.PACKET_SIZE_LENGTH).putInt(packetSize).array();
-
             switch (header) {
                 case CONNECTED:
                 case MAP:
                     out.write(header.getValue());
-                    out.flush();
                     break;
                 case SHUFFLE:
                 case MERGE:
-                    out.write(header.getValue());
-                    out.write(subHeader);
-                    while (offset < packetSize) {
-                        chunkSize = Math.min(chunkSize, packetSize - offset);
-                        out.write(bytes, offset, chunkSize);
-                        offset += chunkSize;
-                    }
+                    out.writeByte(header.getValue());
+                    byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+                    out.writeInt(bytes.length);
+                    out.write(bytes);
                     break;
                 default:
                     break;
