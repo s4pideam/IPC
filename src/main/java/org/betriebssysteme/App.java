@@ -14,7 +14,7 @@ public class App {
         String HOST = "localhost";
         int CHUNK_SIZE = 20000;
         int PORT = 42069;
-        int CLIENT_NUMBERS = 2;
+        int CLIENT_NUMBERS = 4;
 
         if (args.length > 0) {
             if (args[0].equals("s")) {
@@ -32,7 +32,7 @@ public class App {
                 configMap.put("host", HOST);
                 configMap.put("port", PORT);
                 client.init(configMap);
-                client.connect();
+                client.start();
             } else {
                 System.out.println("Invalid argument. Please provide 's' for server or 'c' for client.");
             }

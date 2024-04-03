@@ -8,47 +8,41 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
-
-import org.betriebssysteme.Enum.EClientStatus;
 import org.betriebssysteme.Enum.EPackage;
 import org.betriebssysteme.Interfaces.IIPCClient;
 import org.betriebssysteme.Interfaces.ISendable;
+import org.betriebssysteme.Utils.Utils;
 
 public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
     private Socket socket;
     private DataOutputStream outputStream;
     private DataInputStream inputStream;
-    private EClientStatus eClientStatus = EClientStatus.WORKING;
     private int PORT;
     private String HOST;
+    private boolean connected = true;
 
     private HashMap<String, HashMap<String, Integer>> wordCount = new HashMap<>();
     private int clientIndex = 0;
     private String[] alphabetSplit;
 
-    private void associateKeys(String keys, HashMap<String, HashMap<String, Integer>> hashMap,
-            HashMap<String, Integer> object) {
-        hashMap.put(keys, object);
-        for (char key : keys.toCharArray()) {
-            hashMap.put(String.valueOf(key), object);
-        }
+    @Override
+    public void init(Map<String, Object> configMap) {
+        this.PORT = (int) configMap.getOrDefault("port", 42069);
+        this.HOST = (String) configMap.getOrDefault("host", "localhost");
     }
 
-    private void countWords(String message) {
-        String[] words = message.toLowerCase().split("\\W+");
-
-        for (String word : words) {
-            if (!word.matches("[a-z]+"))
-                continue;
-            String key = String.valueOf(word.charAt(0));
-            wordCount.computeIfAbsent(key, k -> new HashMap<>());
-            wordCount.get(key).merge(word, 1, Integer::sum);
+    @Override
+    public void disconnect() {
+        try {
+            this.socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     // SERVER RECEIVE
     @Override
-    public void connect() {
+    public void start() {
         try {
             this.socket = new Socket(this.HOST, this.PORT);
             this.inputStream = new DataInputStream(this.socket.getInputStream());
@@ -58,7 +52,7 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
             byte[] data;
             String message;
 
-            while (eClientStatus != EClientStatus.DONE) {
+            while (connected) {
                 byte header = inputStream.readByte();
                 if (header == -1) {
                     break;
@@ -77,7 +71,7 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                         this.alphabetSplit = new String[parts.length - 1];
                         for (int i = 1; i < parts.length; i++) {
                             this.alphabetSplit[i - 1] = parts[i];
-                            this.associateKeys(parts[i], this.wordCount, new HashMap<>());
+                            Utils.associateKeys(this.wordCount, parts[i], new HashMap<>());
                         }
                         this.send(this.outputStream, EPackage.CONNECTED, null);
                         break;
@@ -86,7 +80,7 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                         data = new byte[dataSize];
                         this.inputStream.readFully(data);
                         message = new String(data, StandardCharsets.UTF_8);
-                        this.countWords(message);
+                        Utils.countWords(this.wordCount, message);
                         this.send(this.outputStream, EPackage.MAP, null);
                         break;
                     case SHUFFLE:
@@ -102,7 +96,6 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                             }
                             this.wordCount.get(this.alphabetSplit[i]).clear();
                         }
-                        // System.out.println(sj.toString());
                         this.send(this.outputStream, EPackage.SHUFFLE, sj.toString());
                         break;
                     case REDUCE:
@@ -116,7 +109,7 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                         if (parts.length > 1) {
                             for (int i = 0; i < parts.length; i += 2) {
                                 if (i + 1 >= parts.length) {
-                                    // System.out.println("what?");
+                                    System.out.println("PACKAGE WENT MISSING");
                                 }
                                 word = parts[i];
                                 key = String.valueOf(word.charAt(0));
@@ -127,42 +120,27 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                         break;
                     case MERGE:
                         sj = new StringJoiner(EPackage.STRING_DELIMETER);
-                        for (Map.Entry<String, Integer> entry : this.wordCount.get(this.alphabetSplit[this.clientIndex])
+                        for (Map.Entry<String, Integer> entry : this.wordCount
+                                .get(this.alphabetSplit[this.clientIndex])
                                 .entrySet()) {
                             sj.add(entry.getKey());
                             sj.add(String.valueOf(entry.getValue()));
                         }
+
                         send(this.outputStream, EPackage.MERGE, sj.toString());
+                        System.out.println("Client[" + this.clientIndex + "] Merged");
                         break;
                     case DONE:
-                        eClientStatus = EClientStatus.DONE;
+                        connected = false;
                         this.disconnect();
                         break;
                     default:
-                        // Handle default case
                         break;
                 }
-                // System.out.println("Client[" + this.clientIndex + "] last package: " +
-                // lastHeader);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void disconnect() {
-        try {
-            this.socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void init(Map<String, Object> configMap) {
-        this.PORT = (int) configMap.getOrDefault("port", 42069);
-        this.HOST = (String) configMap.getOrDefault("host", "localhost");
     }
 
     @Override

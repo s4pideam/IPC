@@ -78,38 +78,9 @@ public class IPCServer implements IIPCServer, ITextTokenizer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return offsets.stream().mapToInt(Integer::intValue).toArray();
     }
 
-    /*
-     * private int[] getOffsets(int chunkSize) {
-     * List<Integer> offsets = new ArrayList<>();
-     * offsets.add(0);
-     * 
-     * long fileSizeInBytes;
-     * try {
-     * fileSizeInBytes = this.randomAccessFile.length();
-     * int ch;
-     * int currentPosition = chunkSize;
-     * while (currentPosition < fileSizeInBytes) {
-     * this.randomAccessFile.seek(currentPosition);
-     * ch = this.randomAccessFile.read();
-     * if (ch == ' ') {
-     * offsets.add(++currentPosition);
-     * currentPosition += chunkSize;
-     * } else {
-     * currentPosition--;
-     * }
-     * }
-     * offsets.add((int) fileSizeInBytes);
-     * } catch (IOException e) {
-     * e.printStackTrace();
-     * }
-     * 
-     * return offsets.stream().mapToInt(Integer::intValue).toArray();
-     * }
-     */
     @Override
     public List<List<Offsets>> getOffsets(int clientNumbers, int chunkSize) {
         int[] offsets = this.getOffsets(chunkSize);
@@ -131,7 +102,6 @@ public class IPCServer implements IIPCServer, ITextTokenizer {
             outputOffsetList.add(subList);
 
         }
-
         return outputOffsetList;
     }
 

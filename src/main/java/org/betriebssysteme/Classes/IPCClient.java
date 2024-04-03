@@ -7,7 +7,7 @@ import org.betriebssysteme.Interfaces.IIPCClient;
 public class IPCClient implements IIPCClient {
 
     @Override
-    public void connect() {
+    public void start() {
         throw new UnsupportedOperationException("Unimplemented method 'connect'");
     }
 

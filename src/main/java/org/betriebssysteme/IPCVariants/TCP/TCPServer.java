@@ -15,8 +15,8 @@ import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.betriebssysteme.Classes.ClientStatus;
 import org.betriebssysteme.Classes.IPCServer;
-import org.betriebssysteme.Enum.EClientStatus;
 import org.betriebssysteme.Enum.EPackage;
 import org.betriebssysteme.Interfaces.ISendable;
 import org.betriebssysteme.Record.Offsets;
@@ -25,7 +25,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
     ConcurrentHashMap<String, DataOutputStream> clientQueue = new ConcurrentHashMap<>();
     ConcurrentHashMap<String, Thread> clientThreads = new ConcurrentHashMap<>();
     List<List<String>> alphabetSplit = new ArrayList<>();
-    ConcurrentHashMap<OutputStream, Integer> reduced = new ConcurrentHashMap<>();
+    ConcurrentHashMap<OutputStream, ClientStatus> clientStatus = new ConcurrentHashMap<>();
     HashMap<String, Integer> wordCount = new HashMap<>();
 
     private int PORT;
@@ -61,7 +61,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
                 String key = alphabetSplit.get(currentIndex).stream().collect(Collectors.joining());
                 this.clientQueue.put(key, clientOutputStream);
                 this.clientThreads.put(key, thread);
-                this.reduced.put(clientOutputStream, 0);
+                this.clientStatus.put(clientOutputStream, new ClientStatus());
                 this.generateInitMessage(clientOutputStream, currentIndex);
                 currentIndex++;
             }
@@ -96,34 +96,36 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
     @Override
     public void send(DataOutputStream out, EPackage header, String message) {
         try {
-            // synchronized (out) {
-            switch (header) {
-                case INIT:
-                case MAP:
-                case REDUCE:
-                    out.writeByte(header.getValue());
-                    byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
-                    out.writeInt(bytes.length);
-                    out.write(bytes);
-                    if (header == EPackage.INIT) {
-                        out.flush();
-                    }
-                    if (header == EPackage.REDUCE
-                            && this.reduced.merge(out, 1, Integer::sum) >= this.CLIENT_NUMBERS - 1) {
-                        out.writeByte(EPackage.MERGE.getValue());
-                    }
-                    out.flush();
-                    break;
-                case SHUFFLE:
-                case MERGE:
-                case CONNECTED:
-                case DONE:
-                    out.writeByte(header.getValue());
-                    break;
-                default:
-                    break;
+            synchronized (out) {
+                switch (header) {
+                    case INIT:
+                    case MAP:
+                    case REDUCE:
+                        out.writeByte(header.getValue());
+                        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+                        out.writeInt(bytes.length);
+                        out.write(bytes);
+                        if (header == EPackage.REDUCE) {
+                            ClientStatus clientStatus = this.clientStatus.get(out);
+                            clientStatus.REDUCED++;
+                            if (clientStatus.REDUCED >= this.CLIENT_NUMBERS - 1) {
+                                out.writeByte(EPackage.MERGE.getValue());
+                            }
+                        }
+                        if (header == EPackage.INIT) {
+                            out.flush();
+                        }
+                        break;
+                    case SHUFFLE:
+                    case MERGE:
+                    case CONNECTED:
+                    case DONE:
+                        out.writeByte(header.getValue());
+                        break;
+                    default:
+                        break;
+                }
             }
-            // }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -137,7 +139,6 @@ class ClientHandler extends Thread {
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
     private List<Offsets> offsets;
-    private EClientStatus eClientStatus = EClientStatus.WORKING;
     private int currentOffset = 0;
 
     public ClientHandler(TCPServer server, DataInputStream dataInputStream, DataOutputStream dataOutputStream,
@@ -156,7 +157,7 @@ class ClientHandler extends Thread {
 
         try {
             // synchronized (this.server) {
-            while (eClientStatus != EClientStatus.DONE) {
+            while (!this.server.clientStatus.get(this.outputStream).FINISHED) {
                 byte header = inputStream.readByte();
                 if (header == -1) {
                     break;
@@ -172,6 +173,7 @@ class ClientHandler extends Thread {
                             this.server.send(this.outputStream, EPackage.MAP, message);
                             currentOffset++;
                         } else {
+                            this.server.clientStatus.get(this.outputStream).MAPPED = true;
                             this.server.send(this.outputStream, EPackage.SHUFFLE, null);
                         }
                         break;
@@ -190,10 +192,6 @@ class ClientHandler extends Thread {
                                 i = i + 2;
                                 count = count + i;
                                 while (i < count) {
-                                    if (i + 1 >= parts.length) {
-                                        // System.out.println("Received Shuffle " + data.length);
-                                        // System.out.println(message);
-                                    }
                                     sj.add(parts[i]);
                                     sj.add(parts[i + 1]);
                                     i = i + 2;
@@ -201,12 +199,18 @@ class ClientHandler extends Thread {
                                 if (server.clientQueue.containsKey(key)) {
                                     DataOutputStream out = server.clientQueue.get(key);
                                     this.server.send(out, EPackage.REDUCE, sj.toString());
-                                    // System.out.println("Send Reduced " + data.length);
                                 }
                             }
                         }
-                        if (currentOffset >= offsets.size() && (this.server.reduced.get(this.outputStream)  >= this.server.CLIENT_NUMBERS - 1)) {
+                        this.server.clientStatus.get(this.outputStream).SHUFFLED = true;
+
+                        if (this.server.CLIENT_NUMBERS == 1) {
                             this.server.send(this.outputStream, EPackage.MERGE, null);
+                        }
+                        if (this.server.clientStatus.get(this.outputStream).MAPPED
+                                && this.server.clientStatus.get(this.outputStream).MERGED) {
+                            this.server.send(this.outputStream, EPackage.DONE, null);
+                            this.server.clientStatus.get(this.outputStream).FINISHED = true;
                         }
                         break;
                     case MERGE:
@@ -218,13 +222,15 @@ class ClientHandler extends Thread {
                         for (i = 0; i < parts.length - 1; i = i + 2) {
                             String word = parts[i];
                             int count = Integer.parseInt(parts[i + 1]);
-                            synchronized (server.wordCount) {
+                            synchronized (this.server) {
                                 server.wordCount.compute(word, (k, v) -> (v == null) ? count : v + count);
                             }
                         }
-                        if (currentOffset >= offsets.size() && (this.server.reduced.get(this.outputStream)  >= this.server.CLIENT_NUMBERS - 1)) {
+                        this.server.clientStatus.get(this.outputStream).MERGED = true;
+                        if (this.server.clientStatus.get(this.outputStream).MAPPED
+                                && this.server.clientStatus.get(this.outputStream).SHUFFLED) {
                             this.server.send(this.outputStream, EPackage.DONE, null);
-                            this.eClientStatus = EClientStatus.DONE;
+                            this.server.clientStatus.get(this.outputStream).FINISHED = true;
                         }
                         break;
                     default:
