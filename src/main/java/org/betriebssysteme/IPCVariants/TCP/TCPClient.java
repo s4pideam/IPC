@@ -48,10 +48,6 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
             this.inputStream = new DataInputStream(this.socket.getInputStream());
             this.outputStream = new DataOutputStream(this.socket.getOutputStream());
 
-            int dataSize;
-            byte[] data;
-            String message;
-
             while (connected) {
                 byte header = inputStream.readByte();
                 if (header == -1) {
@@ -59,11 +55,11 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                 }
 
                 switch (EPackage.fromByte(header)) {
-                    case INIT:
-                        dataSize = this.inputStream.readInt();
-                        data = new byte[dataSize];
+                    case INIT: {
+                        int dataSize = this.inputStream.readInt();
+                        byte[] data = new byte[dataSize];
                         this.inputStream.readFully(data);
-                        message = new String(data, StandardCharsets.UTF_8);
+                        String message = new String(data, StandardCharsets.UTF_8);
 
                         String[] parts = message.split(EPackage.STRING_DELIMETER);
                         this.clientIndex = Integer.parseInt(parts[0]);
@@ -74,15 +70,17 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                         }
                         this.send(this.outputStream, EPackage.CONNECTED, null);
                         break;
-                    case MAP:
-                        dataSize = this.inputStream.readInt();
-                        data = new byte[dataSize];
+                    }
+                    case MAP: {
+                        int dataSize = this.inputStream.readInt();
+                        byte[] data = new byte[dataSize];
                         this.inputStream.readFully(data);
-                        message = new String(data, StandardCharsets.UTF_8);
+                        String message = new String(data, StandardCharsets.UTF_8);
                         Utils.countWords(this.wordCount, message);
                         this.send(this.outputStream, EPackage.MAP, null);
                         break;
-                    case SHUFFLE:
+                    }
+                    case SHUFFLE: {
                         StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMETER);
                         for (int i = 0; i < this.alphabetSplit.length; i++) {
                             if (this.clientIndex == i)
@@ -97,14 +95,15 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                         }
                         this.send(this.outputStream, EPackage.SHUFFLE, sj.toString());
                         break;
-                    case REDUCE:
+                    }
+                    case REDUCE: {
                         String word;
                         String key;
-                        dataSize = this.inputStream.readInt();
-                        data = new byte[dataSize];
+                        int dataSize = this.inputStream.readInt();
+                        byte[] data = new byte[dataSize];
                         this.inputStream.readFully(data);
-                        message = new String(data, StandardCharsets.UTF_8);
-                        parts = message.split(EPackage.STRING_DELIMETER);
+                        String message = new String(data, StandardCharsets.UTF_8);
+                        String[] parts = message.split(EPackage.STRING_DELIMETER);
                         if (parts.length > 1) {
                             for (int i = 0; i < parts.length; i += 2) {
                                 if (i + 1 >= parts.length) {
@@ -117,8 +116,9 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                             }
                         }
                         break;
-                    case MERGE:
-                        sj = new StringJoiner(EPackage.STRING_DELIMETER);
+                    }
+                    case MERGE: {
+                        StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMETER);
                         for (Map.Entry<String, Integer> entry : this.wordCount
                                 .get(this.alphabetSplit[this.clientIndex])
                                 .entrySet()) {
@@ -126,8 +126,8 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                             sj.add(String.valueOf(entry.getValue()));
                         }
                         send(this.outputStream, EPackage.MERGE, sj.toString());
-                        //System.out.println("Client[" + this.clientIndex + "] Merged");
                         break;
+                    }
                     case DONE:
                         connected = false;
                         this.disconnect();
@@ -146,17 +146,19 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
         try {
             switch (header) {
                 case CONNECTED:
-                case MAP:
+                case MAP: {
                     out.write(header.getValue());
                     break;
+                }
                 case SHUFFLE:
-                case MERGE:
+                case MERGE: {
                     out.writeByte(header.getValue());
                     byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
                     out.writeInt(bytes.length);
                     out.write(bytes);
                     out.flush();
                     break;
+                }
                 default:
                     break;
             }

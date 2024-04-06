@@ -99,7 +99,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
                 switch (header) {
                     case INIT:
                     case MAP:
-                    case REDUCE:
+                    case REDUCE: {
                         out.writeByte(header.getValue());
                         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
                         out.writeInt(bytes.length);
@@ -108,7 +108,8 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
                             synchronized (this) {
                                 ClientStatus clientStatus = this.clientStatus.get(out);
                                 clientStatus.REDUCED++;
-                                if ((clientStatus.REDUCED == this.CLIENT_NUMBERS - 1) && (clientStatus.MAPPED) && (!clientStatus.MERGED)) {
+                                if ((clientStatus.REDUCED == this.CLIENT_NUMBERS - 1) && (clientStatus.MAPPED)
+                                        && (!clientStatus.MERGED)) {
                                     out.writeByte(EPackage.MERGE.getValue());
                                 }
                             }
@@ -117,12 +118,14 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
                             out.flush();
                         }
                         break;
+                    }
                     case SHUFFLE:
                     case MERGE:
                     case CONNECTED:
-                    case DONE:
+                    case DONE: {
                         out.writeByte(header.getValue());
                         break;
+                    }
                     default:
                         break;
                 }
@@ -155,11 +158,8 @@ class ClientHandler extends Thread {
 
     // RECEIVING from client
     public void run() {
-        int dataSize;
-        byte[] data;
-        String[] parts;
-        String message;
-        int i;
+
+        Offsets offset;
 
         try {
             // synchronized (this.server) {
@@ -171,11 +171,11 @@ class ClientHandler extends Thread {
 
                 switch (EPackage.fromByte(header)) {
                     case CONNECTED:
-                    case MAP:
+                    case MAP: {
                         if (currentOffset < offsets.size()) {
-                            Offsets offset = offsets.get(currentOffset);
+                            offset = offsets.get(currentOffset);
                             byte[] packet = this.server.getChunk(offset.offset(), offset.length());
-                            message = new String(packet);
+                            String message = new String(packet);
                             this.server.send(this.outputStream, EPackage.MAP, message);
                             currentOffset++;
                         } else {
@@ -183,13 +183,14 @@ class ClientHandler extends Thread {
                             this.server.send(this.outputStream, EPackage.SHUFFLE, null);
                         }
                         break;
-                    case SHUFFLE:
-                        dataSize = this.inputStream.readInt();
-                        data = new byte[dataSize];
+                    }
+                    case SHUFFLE: {
+                        int dataSize = this.inputStream.readInt();
+                        byte[] data = new byte[dataSize];
                         this.inputStream.readFully(data);
-                        message = new String(data, StandardCharsets.UTF_8);
-                        parts = message.split(EPackage.STRING_DELIMETER);
-                        i = 0 ;
+                        String message = new String(data, StandardCharsets.UTF_8);
+                        String[] parts = message.split(EPackage.STRING_DELIMETER);
+                        int i = 0;
                         if (parts.length > 1) {
                             while (i < parts.length) {
                                 String key = parts[i];
@@ -213,18 +214,19 @@ class ClientHandler extends Thread {
                         clientstatus.SHUFFLED = true;
 
                         if ((this.server.CLIENT_NUMBERS == 1)
-                        || (clientstatus.MAPPED
-                                && clientstatus.REDUCED == this.server.CLIENT_NUMBERS - 1)) {
+                                || (clientstatus.MAPPED
+                                        && clientstatus.REDUCED == this.server.CLIENT_NUMBERS - 1)) {
                             this.server.send(this.outputStream, EPackage.MERGE, null);
                         }
                         break;
-                    case MERGE:
-                        dataSize = this.inputStream.readInt();
-                        data = new byte[dataSize];
+                    }
+                    case MERGE:{
+                        int dataSize = this.inputStream.readInt();
+                        byte[] data = new byte[dataSize];
                         this.inputStream.readFully(data);
-                        message = new String(data, StandardCharsets.UTF_8);
-                        parts = message.split(EPackage.STRING_DELIMETER);
-                        for (i = 0; i < parts.length - 1; i = i + 2) {
+                        String message = new String(data, StandardCharsets.UTF_8);
+                        String[] parts = message.split(EPackage.STRING_DELIMETER);
+                        for (int i = 0; i < parts.length - 1; i = i + 2) {
                             String word = parts[i];
                             int count = Integer.parseInt(parts[i + 1]);
                             this.server.updateWordCount(word, count);
@@ -233,6 +235,7 @@ class ClientHandler extends Thread {
                         this.server.send(this.outputStream, EPackage.DONE, null);
                         this.server.clientStatus.get(this.outputStream).FINISHED = true;
                         break;
+                    }
                     default:
                         break;
                 }
@@ -244,6 +247,5 @@ class ClientHandler extends Thread {
             e.printStackTrace();
         }
     }
-
 
 }
