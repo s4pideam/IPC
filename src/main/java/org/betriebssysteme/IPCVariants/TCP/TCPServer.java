@@ -189,6 +189,7 @@ class ClientHandler extends Thread {
                         this.inputStream.readFully(data);
                         message = new String(data, StandardCharsets.UTF_8);
                         parts = message.split(EPackage.STRING_DELIMETER);
+                        i = 0 ;
                         if (parts.length > 1) {
                             while (i < parts.length) {
                                 String key = parts[i];
