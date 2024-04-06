@@ -21,7 +21,7 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
     private String HOST;
     private boolean connected = true;
 
-    private HashMap<String, HashMap<String, Integer>> wordCount = new HashMap<>();
+    private final HashMap<String, HashMap<String, Integer>> wordCount = new HashMap<>();
     private int clientIndex = 0;
     private String[] alphabetSplit;
 
@@ -66,7 +66,6 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                         message = new String(data, StandardCharsets.UTF_8);
 
                         String[] parts = message.split(EPackage.STRING_DELIMETER);
-                        StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMETER);
                         this.clientIndex = Integer.parseInt(parts[0]);
                         this.alphabetSplit = new String[parts.length - 1];
                         for (int i = 1; i < parts.length; i++) {
@@ -84,7 +83,7 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                         this.send(this.outputStream, EPackage.MAP, null);
                         break;
                     case SHUFFLE:
-                        sj = new StringJoiner(EPackage.STRING_DELIMETER);
+                        StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMETER);
                         for (int i = 0; i < this.alphabetSplit.length; i++) {
                             if (this.clientIndex == i)
                                 continue;
@@ -126,9 +125,8 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
                             sj.add(entry.getKey());
                             sj.add(String.valueOf(entry.getValue()));
                         }
-
                         send(this.outputStream, EPackage.MERGE, sj.toString());
-                        System.out.println("Client[" + this.clientIndex + "] Merged");
+                        //System.out.println("Client[" + this.clientIndex + "] Merged");
                         break;
                     case DONE:
                         connected = false;

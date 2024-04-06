@@ -8,7 +8,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -26,7 +25,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
     ConcurrentHashMap<String, Thread> clientThreads = new ConcurrentHashMap<>();
     List<List<String>> alphabetSplit = new ArrayList<>();
     ConcurrentHashMap<OutputStream, ClientStatus> clientStatus = new ConcurrentHashMap<>();
-    HashMap<String, Integer> wordCount = new HashMap<>();
+    ConcurrentHashMap<String, Integer> wordCount = new ConcurrentHashMap<>();
 
     private int PORT;
     private int CHUNK_SIZE;
@@ -58,7 +57,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
                 DataOutputStream clientOutputStream = new DataOutputStream(clientSocket.getOutputStream());
                 Thread thread = new Thread(
                         new ClientHandler(this, clientInputStream, clientOutputStream, offsets.get(currentIndex)));
-                String key = alphabetSplit.get(currentIndex).stream().collect(Collectors.joining());
+                String key = String.join("", alphabetSplit.get(currentIndex));
                 this.clientQueue.put(key, clientOutputStream);
                 this.clientThreads.put(key, thread);
                 this.clientStatus.put(clientOutputStream, new ClientStatus());
@@ -84,7 +83,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
         }
     }
 
-    private void generateInitMessage(DataOutputStream out, int index) throws IOException {
+    private void generateInitMessage(DataOutputStream out, int index) {
         String result = index + EPackage.STRING_DELIMETER +
                 alphabetSplit.stream()
                         .map(innerList -> String.join("", innerList))
@@ -106,10 +105,12 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
                         out.writeInt(bytes.length);
                         out.write(bytes);
                         if (header == EPackage.REDUCE) {
-                            ClientStatus clientStatus = this.clientStatus.get(out);
-                            clientStatus.REDUCED++;
-                            if (clientStatus.REDUCED >= this.CLIENT_NUMBERS - 1) {
-                                out.writeByte(EPackage.MERGE.getValue());
+                            synchronized (this) {
+                                ClientStatus clientStatus = this.clientStatus.get(out);
+                                clientStatus.REDUCED++;
+                                if ((clientStatus.REDUCED == this.CLIENT_NUMBERS - 1) && (clientStatus.MAPPED) && (!clientStatus.MERGED)) {
+                                    out.writeByte(EPackage.MERGE.getValue());
+                                }
                             }
                         }
                         if (header == EPackage.INIT) {
@@ -131,14 +132,17 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
         }
     }
 
+    public synchronized void updateWordCount(String word, int count) {
+        wordCount.compute(word, (k, v) -> (v == null) ? count : v + count);
+    }
+
 }
 
 class ClientHandler extends Thread {
-    private TCPServer server;
-    private Socket socket;
-    private DataInputStream inputStream;
-    private DataOutputStream outputStream;
-    private List<Offsets> offsets;
+    private final TCPServer server;
+    private final DataInputStream inputStream;
+    private final DataOutputStream outputStream;
+    private final List<Offsets> offsets;
     private int currentOffset = 0;
 
     public ClientHandler(TCPServer server, DataInputStream dataInputStream, DataOutputStream dataOutputStream,
@@ -153,7 +157,9 @@ class ClientHandler extends Thread {
     public void run() {
         int dataSize;
         byte[] data;
+        String[] parts;
         String message;
+        int i;
 
         try {
             // synchronized (this.server) {
@@ -182,8 +188,7 @@ class ClientHandler extends Thread {
                         data = new byte[dataSize];
                         this.inputStream.readFully(data);
                         message = new String(data, StandardCharsets.UTF_8);
-                        String[] parts = message.split(EPackage.STRING_DELIMETER);
-                        int i = 0;
+                        parts = message.split(EPackage.STRING_DELIMETER);
                         if (parts.length > 1) {
                             while (i < parts.length) {
                                 String key = parts[i];
@@ -202,15 +207,14 @@ class ClientHandler extends Thread {
                                 }
                             }
                         }
-                        this.server.clientStatus.get(this.outputStream).SHUFFLED = true;
 
-                        if (this.server.CLIENT_NUMBERS == 1) {
+                        ClientStatus clientstatus = this.server.clientStatus.get(this.outputStream);
+                        clientstatus.SHUFFLED = true;
+
+                        if ((this.server.CLIENT_NUMBERS == 1)
+                        || (clientstatus.MAPPED
+                                && clientstatus.REDUCED == this.server.CLIENT_NUMBERS - 1)) {
                             this.server.send(this.outputStream, EPackage.MERGE, null);
-                        }
-                        if (this.server.clientStatus.get(this.outputStream).MAPPED
-                                && this.server.clientStatus.get(this.outputStream).MERGED) {
-                            this.server.send(this.outputStream, EPackage.DONE, null);
-                            this.server.clientStatus.get(this.outputStream).FINISHED = true;
                         }
                         break;
                     case MERGE:
@@ -222,16 +226,11 @@ class ClientHandler extends Thread {
                         for (i = 0; i < parts.length - 1; i = i + 2) {
                             String word = parts[i];
                             int count = Integer.parseInt(parts[i + 1]);
-                            synchronized (this.server) {
-                                server.wordCount.compute(word, (k, v) -> (v == null) ? count : v + count);
-                            }
+                            this.server.updateWordCount(word, count);
                         }
                         this.server.clientStatus.get(this.outputStream).MERGED = true;
-                        if (this.server.clientStatus.get(this.outputStream).MAPPED
-                                && this.server.clientStatus.get(this.outputStream).SHUFFLED) {
-                            this.server.send(this.outputStream, EPackage.DONE, null);
-                            this.server.clientStatus.get(this.outputStream).FINISHED = true;
-                        }
+                        this.server.send(this.outputStream, EPackage.DONE, null);
+                        this.server.clientStatus.get(this.outputStream).FINISHED = true;
                         break;
                     default:
                         break;
@@ -245,12 +244,5 @@ class ClientHandler extends Thread {
         }
     }
 
-    public void close() {
-        try {
-            this.socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
 }
