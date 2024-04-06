@@ -172,7 +172,7 @@ class ClientHandler extends Thread {
                     case CONNECTED:
                     case MAP: {
                         if (currentOffset < offsets.size()) {
-                            Offset offset = offsets.get(currentOffset);
+                            Offsets offset = offsets.get(currentOffset);
                             byte[] packet = this.server.getChunk(offset.offset(), offset.length());
                             String message = new String(packet);
                             this.server.send(this.outputStream, EPackage.MAP, message);
