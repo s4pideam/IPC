@@ -135,6 +135,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
         }
     }
 
+    // Eigentlich unnötig hier zu synchronizieren. Und der zweite Fall tritt niemals ein (v+count)
     public synchronized void updateWordCount(String word, int count) {
         wordCount.compute(word, (k, v) -> (v == null) ? count : v + count);
     }
@@ -159,8 +160,6 @@ class ClientHandler extends Thread {
     // RECEIVING from client
     public void run() {
 
-        Offsets offset;
-
         try {
             // synchronized (this.server) {
             while (!this.server.clientStatus.get(this.outputStream).FINISHED) {
@@ -173,7 +172,7 @@ class ClientHandler extends Thread {
                     case CONNECTED:
                     case MAP: {
                         if (currentOffset < offsets.size()) {
-                            offset = offsets.get(currentOffset);
+                            Offset offset = offsets.get(currentOffset);
                             byte[] packet = this.server.getChunk(offset.offset(), offset.length());
                             String message = new String(packet);
                             this.server.send(this.outputStream, EPackage.MAP, message);
