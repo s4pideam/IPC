@@ -19,19 +19,43 @@
         },
         {
             "type": "java",
-            "name": "AppServer",
+            "name": "TCPServer",
             "request": "launch",
             "mainClass": "org.betriebssysteme.App",
             "projectName": "tcp",
-            "args": ["s"]
+            "args": ["s","tcp"]
         },
         {
             "type": "java",
-            "name": "AppClient",
+            "name": "TCPClient",
             "request": "launch",
             "mainClass": "org.betriebssysteme.App",
             "projectName": "tcp",
-            "args": ["c"]
+            "args": ["c","tcp"]
+        },
+        {
+            "type": "java",
+            "name": "NPServer",
+            "request": "launch",
+            "mainClass": "org.betriebssysteme.App",
+            "projectName": "tcp",
+            "args": ["s","np"]
+        },
+        {
+            "type": "java",
+            "name": "NPClient0",
+            "request": "launch",
+            "mainClass": "org.betriebssysteme.App",
+            "projectName": "tcp",
+            "args": ["c","np","0"]
+        },
+        {
+            "type": "java",
+            "name": "NPClient1",
+            "request": "launch",
+            "mainClass": "org.betriebssysteme.App",
+            "projectName": "tcp",
+            "args": ["c","np","1"]
         }
     ]
 }
