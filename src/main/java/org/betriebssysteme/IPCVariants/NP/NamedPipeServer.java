@@ -21,9 +21,7 @@ import org.betriebssysteme.Record.Offsets;
 import org.betriebssysteme.Utils.Utils;
 
 public class NamedPipeServer extends IPCServer implements ISendable<DataOutputStream> {
-
     private int CHUNK_SIZE;
-    public int CLIENT_NUMBERS;
 
     private List<List<Offsets>> offsets;
 
@@ -45,11 +43,11 @@ public class NamedPipeServer extends IPCServer implements ISendable<DataOutputSt
         serverToClientNamedPipes = new Path[CLIENT_NUMBERS];
         clientToServerNamedPipes = new Path[CLIENT_NUMBERS];
 
-        for (int i = 0; i < CLIENT_NUMBERS; i++) {
+        for (int i = 0; i < this.CLIENT_NUMBERS; i++) {
             // init named pipes
-            Path serverToClient = FileSystems.getDefault().getPath(".np/server_to_client" + i);
+            Path serverToClient = FileSystems.getDefault().getPath("./np/server_to_client" + i);
             serverToClientNamedPipes[i] = serverToClient;
-            Path clientToServer = FileSystems.getDefault().getPath(".np/client_to_server" + i);
+            Path clientToServer = FileSystems.getDefault().getPath("./np/client_to_server" + i);
             clientToServerNamedPipes[i] = clientToServer;
             Utils.createNamedPipe(serverToClient);
             Utils.createNamedPipe(clientToServer);

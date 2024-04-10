@@ -18,6 +18,7 @@ public class ClientHandler extends Thread {
 
     public ClientHandler(IPCServer server, DataInputStream dataInputStream, DataOutputStream dataOutputStream,
             List<Offsets> offsets) {
+
         this.server = server;
         this.inputStream = dataInputStream;
         this.outputStream = dataOutputStream;
@@ -78,12 +79,14 @@ public class ClientHandler extends Thread {
                     }
 
                     ClientStatus clientstatus = this.server.clientStatus.get(this.outputStream);
-                    clientstatus.SHUFFLED = true;
-
+                    System.out.println("SHUFFLE: " + clientstatus);
+                    System.out.println("CLIENT NUMBERS" + this.server.CLIENT_NUMBERS);
                     if ((this.server.CLIENT_NUMBERS == 1)
                             || (clientstatus.MAPPED
                                     && clientstatus.REDUCED == this.server.CLIENT_NUMBERS - 1)) {
+                        System.out.println("SHUFFLE : MERGE SEND");
                         this.server.send(this.outputStream, EPackage.MERGE, null);
+
                     }
                     break;
                 }

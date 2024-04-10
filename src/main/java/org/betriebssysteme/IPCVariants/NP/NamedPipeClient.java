@@ -35,8 +35,8 @@ public class NamedPipeClient implements IIPCClient, ISendable<DataOutputStream> 
     @Override
     public void init(Map<String, Object> configMap) {
         int id = (int)configMap.get("id");
-        serverToClient = FileSystems.getDefault().getPath(".np/server_to_client" + id);
-        clientToServer = FileSystems.getDefault().getPath(".np/client_to_server" + id);
+        serverToClient = FileSystems.getDefault().getPath("./np/server_to_client" + id);
+        clientToServer = FileSystems.getDefault().getPath("./np/client_to_server" + id);
 
         Utils.createNamedPipe(serverToClient);
         Utils.createNamedPipe(clientToServer);

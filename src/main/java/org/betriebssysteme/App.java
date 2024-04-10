@@ -16,7 +16,7 @@ public class App {
         String HOST = "localhost";
         int CHUNK_SIZE = 40000;
         int PORT = 42069;
-        int CLIENT_NUMBERS = 2;
+        int CLIENT_NUMBERS = 1;
 
         try {
             if (args.length < 2) {
@@ -43,6 +43,7 @@ public class App {
                 } else {
                     throw new IllegalArgumentException();
                 }
+                break;
             }
             case "np": {
                 if (args[0].equals("s")) {
@@ -65,6 +66,7 @@ public class App {
                     throw new IllegalArgumentException();
                 }
             }
+            break;
             }
 
         } catch (IllegalArgumentException e) {

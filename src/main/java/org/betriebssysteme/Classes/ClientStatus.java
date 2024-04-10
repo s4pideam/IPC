@@ -6,4 +6,15 @@ public class ClientStatus {
     public int REDUCED = 0;
     public boolean MERGED = false;
     public boolean FINISHED = false;
+
+    @Override
+    public String toString() {
+        return "ClientStatus{" +
+                "MAPPED=" + MAPPED +
+                ", SHUFFLED=" + SHUFFLED +
+                ", REDUCED=" + REDUCED +
+                ", MERGED=" + MERGED +
+                ", FINISHED=" + FINISHED +
+                '}';
+    }
 }
