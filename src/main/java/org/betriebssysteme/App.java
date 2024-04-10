@@ -12,7 +12,7 @@ public class App {
     public static void main(String[] args) throws IOException {
         String FILE_PATH = "./mobydick.txt";
         String HOST = "localhost";
-        int CHUNK_SIZE = 20000;
+        int CHUNK_SIZE = 40000;
         int PORT = 42069;
         int CLIENT_NUMBERS = 2;
 
