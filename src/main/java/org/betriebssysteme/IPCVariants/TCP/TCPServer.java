@@ -14,12 +14,11 @@ import org.betriebssysteme.Classes.ClientHandler;
 import org.betriebssysteme.Classes.ClientStatus;
 import org.betriebssysteme.Classes.IPCServer;
 import org.betriebssysteme.Enum.EPackage;
-import org.betriebssysteme.Interfaces.ISendable;
 import org.betriebssysteme.Record.Offsets;
 
-public class TCPServer extends IPCServer implements ISendable<DataOutputStream> {
+public class TCPServer extends IPCServer{
     private int PORT;
-    private int CHUNK_SIZE;
+    protected int CHUNK_SIZE;
 
     private List<List<Offsets>> offsets;
 
@@ -73,7 +72,7 @@ public class TCPServer extends IPCServer implements ISendable<DataOutputStream> 
         }
     }
 
-    private void generateInitMessage(DataOutputStream out, int index) {
+    protected void generateInitMessage(DataOutputStream out, int index) {
         String result = index + EPackage.STRING_DELIMETER +
                 alphabetSplit.stream()
                         .map(innerList -> String.join("", innerList))

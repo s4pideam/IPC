@@ -79,8 +79,6 @@ public class ClientHandler extends Thread {
                     }
 
                     ClientStatus clientstatus = this.server.clientStatus.get(this.outputStream);
-                    System.out.println("SHUFFLE: " + clientstatus);
-                    System.out.println("CLIENT NUMBERS" + this.server.CLIENT_NUMBERS);
                     if ((this.server.CLIENT_NUMBERS == 1)
                             || (clientstatus.MAPPED
                                     && clientstatus.REDUCED == this.server.CLIENT_NUMBERS - 1)) {

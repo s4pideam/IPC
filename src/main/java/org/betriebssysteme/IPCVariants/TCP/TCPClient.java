@@ -8,18 +8,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
+
+import org.betriebssysteme.Classes.IPCClient;
 import org.betriebssysteme.Enum.EPackage;
-import org.betriebssysteme.Interfaces.IIPCClient;
-import org.betriebssysteme.Interfaces.ISendable;
 import org.betriebssysteme.Utils.Utils;
 
-public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
+public class TCPClient extends IPCClient {
     private Socket socket;
-    private DataOutputStream outputStream;
-    private DataInputStream inputStream;
     private int PORT;
     private String HOST;
-    private boolean connected = true;
+
 
     private final HashMap<String, HashMap<String, Integer>> wordCount = new HashMap<>();
     private int clientIndex = 0;
@@ -29,6 +27,13 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
     public void init(Map<String, Object> configMap) {
         this.PORT = (int) configMap.getOrDefault("port", 42069);
         this.HOST = (String) configMap.getOrDefault("host", "localhost");
+        try {
+            this.socket = new Socket(this.HOST, this.PORT);
+            this.inputStream = new DataInputStream(this.socket.getInputStream());
+            this.outputStream = new DataOutputStream(this.socket.getOutputStream());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -44,10 +49,6 @@ public class TCPClient implements IIPCClient, ISendable<DataOutputStream> {
     @Override
     public void start() {
         try {
-            this.socket = new Socket(this.HOST, this.PORT);
-            this.inputStream = new DataInputStream(this.socket.getInputStream());
-            this.outputStream = new DataOutputStream(this.socket.getOutputStream());
-
             while (connected) {
                 byte header = inputStream.readByte();
                 if (header == -1) {
