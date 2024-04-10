@@ -1,19 +1,31 @@
 package org.betriebssysteme.Classes;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.betriebssysteme.Enum.EPackage;
 import org.betriebssysteme.Interfaces.IIPCServer;
 import org.betriebssysteme.Interfaces.ITextTokenizer;
 import org.betriebssysteme.Record.Offsets;
 
 public class IPCServer implements IIPCServer, ITextTokenizer {
     private RandomAccessFile randomAccessFile = null;
+
+    public ConcurrentHashMap<String, DataOutputStream> clientQueue = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, Thread> clientThreads = new ConcurrentHashMap<>();
+    public List<List<String>> alphabetSplit = new ArrayList<>();
+    public ConcurrentHashMap<OutputStream, ClientStatus> clientStatus = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, Integer> wordCount = new ConcurrentHashMap<>();
+
+    public int CLIENT_NUMBERS;
 
     public IPCServer(String filePath) {
         try {
@@ -131,6 +143,16 @@ public class IPCServer implements IIPCServer, ITextTokenizer {
 
     @Override
     public void init(Map<String, Object> configMap) {
+        throw new UnsupportedOperationException("Unimplemented method 'init'");
+    }
+
+    @Override
+    public void send(DataOutputStream dataOutputStream, EPackage epackage, String message) {
+        throw new UnsupportedOperationException("Unimplemented method 'init'");
+    }
+
+    @Override
+    public void updateWordCount(String word, int count) {
         throw new UnsupportedOperationException("Unimplemented method 'init'");
     }
 
