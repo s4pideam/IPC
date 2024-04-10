@@ -1,9 +1,12 @@
 package org.betriebssysteme;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
+import org.betriebssysteme.Classes.StreamGobbler;
 import org.betriebssysteme.IPCVariants.NP.NamedPipeClient;
 import org.betriebssysteme.IPCVariants.NP.NamedPipeServer;
 import org.betriebssysteme.IPCVariants.TCP.TCPClient;
@@ -12,66 +15,107 @@ import org.betriebssysteme.IPCVariants.TCP.TCPServer;
 public class App {
 
     public static void main(String[] args) throws IOException {
-        String FILE_PATH = "./mobydick.txt";
-        String HOST = "localhost";
-        int CHUNK_SIZE = 40000;
-        int PORT = 42069;
-        int CLIENT_NUMBERS = 1;
-
         try {
+            String HOST = "localhost";
+            int PORT = 42069;
+            int CLIENT_NUMBERS;
+            int CHUNK_SIZE;
+            String FILE_PATH;
+
+
+            Path execPath = Paths.get(App.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+
             if (args.length < 2) {
                 throw new IllegalArgumentException();
             }
-            switch (args[1]) {
-            case "tcp": {
-                if (args[0].equals("s")) {
-                    TCPServer server = new TCPServer(FILE_PATH);
-                    Map<String, Object> configMap = new HashMap<>();
-                    configMap.put("host", HOST);
-                    configMap.put("port", PORT);
-                    configMap.put("chunkSize", CHUNK_SIZE);
-                    configMap.put("clientNumbers", CLIENT_NUMBERS);
-                    server.init(configMap);
-                    server.start();
-                } else if (args[0].equals("c")) {
-                    TCPClient client = new TCPClient();
-                    Map<String, Object> configMap = new HashMap<>();
-                    configMap.put("host", HOST);
-                    configMap.put("port", PORT);
-                    client.init(configMap);
-                    client.start();
-                } else {
-                    throw new IllegalArgumentException();
-                }
-                break;
-            }
-            case "np": {
-                if (args[0].equals("s")) {
-                    NamedPipeServer server = new NamedPipeServer(FILE_PATH);
-                    Map<String, Object> configMap = new HashMap<>();
-                    configMap.put("chunkSize", CHUNK_SIZE);
-                    configMap.put("clientNumbers", CLIENT_NUMBERS);
-                    server.init(configMap);
-                    server.start();
-                } else if (args[0].equals("c")) {
-                    NamedPipeClient client = new NamedPipeClient();
-                    if(args.length != 3){
-                        System.out.println("Third argument: id of the client");
+
+
+
+            switch (args[0]) {
+                case "tcp": {
+                    if (args[1].equals("s")) {
+
+                        CLIENT_NUMBERS = Integer.parseInt(args[2]);
+                        CHUNK_SIZE = Integer.parseInt(args[3]);
+                        FILE_PATH = args[4];
+
+                        TCPServer server = new TCPServer(FILE_PATH);
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("host", HOST);
+                        configMap.put("port", PORT);
+                        configMap.put("chunkSize", CHUNK_SIZE);
+                        configMap.put("clientNumbers", CLIENT_NUMBERS);
+                        server.init(configMap);
+
+                        Thread mainThread = new Thread(server::start);
+                        mainThread.start();
+
+                        List<Process> processList = new ArrayList<>();
+                        for (int i = 0; i < CLIENT_NUMBERS; i++) {
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "tcp", "c");
+                            Process process = processBuilder.start();
+                            processList.add(process);
+                            //StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_SERVER " + String.valueOf(i));
+                            //outputGobbler.start();
+                        }
+                        for (Process process : processList) {
+                            process.waitFor();
+                        }
+                        mainThread.join();
                     }
-                    Map<String, Object> configMap = new HashMap<>();
-                    configMap.put("id", Integer.parseInt(args[2]));
-                    client.init(configMap);
-                    client.start();
-                } else {
-                    throw new IllegalArgumentException();
+                    if ((args[1].equals("c"))) {
+                        System.out.println("start");
+                        TCPClient client = new TCPClient();
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("host", HOST);
+                        configMap.put("port", PORT);
+                        client.init(configMap);
+                        client.start();
+                    }
+                    break;
                 }
-            }
-            break;
+                case "np": {
+                    if (args[1].equals("s")) {
+
+                        CLIENT_NUMBERS = Integer.parseInt(args[2]);
+                        CHUNK_SIZE = Integer.parseInt(args[3]);
+                        FILE_PATH = args[4];
+
+                        TCPServer server = new NamedPipeServer(FILE_PATH);
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("chunkSize", CHUNK_SIZE);
+                        configMap.put("clientNumbers", CLIENT_NUMBERS);
+                        server.init(configMap);
+
+                        Thread mainThread = new Thread(server::start);
+                        mainThread.start();
+
+                        List<Process> processList = new ArrayList<>();
+                        for (int i = 0; i < CLIENT_NUMBERS; i++) {
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "np", "c", String.valueOf(i));
+                            Process process = processBuilder.start();
+                            processList.add(process);
+                            //StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_SERVER " + String.valueOf(i));
+                            //outputGobbler.start();
+                        }
+                        for (Process process : processList) {
+                            process.waitFor();
+                        }
+                        mainThread.join();
+                    }
+                    if ((args[1].equals("c"))) {
+                        NamedPipeClient client = new NamedPipeClient();
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("id", Integer.parseInt(args[2]));
+                        client.init(configMap);
+                        client.start();
+                    }
+                    break;
+                }
             }
 
-        } catch (IllegalArgumentException e) {
-            System.out.println("First argument: Please provide 's' for server or 'c' for client.\n"
-                    + "Second argument: Please provide 'tcp' or 'np'");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

@@ -1,6 +1,7 @@
 package org.betriebssysteme.Utils;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -36,7 +37,12 @@ public class Utils {
                 if (file.exists()){
                     file.delete();
                 }
-                Process proc = Runtime.getRuntime().exec("mkfifo " + path);
+                Process proc = null;
+                try {
+                    proc = Runtime.getRuntime().exec("mkfifo " + path);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 int exitCode = proc.waitFor();
                 if (exitCode == 0) {
                     System.out.println("Named pipe created successfully");
