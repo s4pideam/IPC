@@ -82,7 +82,6 @@ public class ClientHandler extends Thread {
                     if ((this.server.CLIENT_NUMBERS == 1)
                             || (clientstatus.MAPPED
                                     && clientstatus.REDUCED == this.server.CLIENT_NUMBERS - 1)) {
-                        System.out.println("SHUFFLE : MERGE SEND");
                         this.server.send(this.outputStream, EPackage.MERGE, null);
 
                     }
