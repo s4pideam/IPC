@@ -2,8 +2,6 @@ package org.betriebssysteme;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 import org.betriebssysteme.Classes.StreamGobbler;
@@ -23,7 +21,8 @@ public class App {
             String FILE_PATH;
 
 
-            Path execPath = Paths.get(App.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            String basePath = System.getProperty("user.dir");
+            String jarPath = basePath + File.separator + "target" + File.separator + "ipc.jar";
 
             if (args.length < 2) {
                 throw new IllegalArgumentException();
@@ -52,7 +51,7 @@ public class App {
 
                         List<Process> processList = new ArrayList<>();
                         for (int i = 0; i < CLIENT_NUMBERS; i++) {
-                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "tcp", "c");
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", jarPath, "tcp", "c");
                             Process process = processBuilder.start();
                             processList.add(process);
                             //StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_SERVER " + String.valueOf(i));
@@ -92,11 +91,13 @@ public class App {
 
                         List<Process> processList = new ArrayList<>();
                         for (int i = 0; i < CLIENT_NUMBERS; i++) {
-                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "np", "c", String.valueOf(i));
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", jarPath, "np", "c", String.valueOf(i));
                             Process process = processBuilder.start();
                             processList.add(process);
-                            //StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_SERVER " + String.valueOf(i));
-                            //outputGobbler.start();
+                            StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_CLIENT " + String.valueOf(i));
+                            outputGobbler.start();
+                            StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR_CLIENT " + String.valueOf(i));
+                            errorGobbler.start();
                         }
                         for (Process process : processList) {
                             process.waitFor();
