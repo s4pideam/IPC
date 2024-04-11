@@ -2,6 +2,8 @@ package org.betriebssysteme;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import org.betriebssysteme.Classes.StreamGobbler;
@@ -23,8 +25,14 @@ public class App {
             String FILE_PATH;
 
 
-            String basePath = System.getProperty("user.dir");
-            String jarPath = basePath + File.separator + "target" + File.separator + "ipc.jar";
+            Path execPath = Paths.get(App.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            Path parentPath = execPath.getParent();
+            if (parentPath != null && execPath.endsWith("classes")) {
+                execPath = parentPath.resolve("ipc.jar");
+            }
+
+
+
 
             if (args.length < 2) {
                 throw new IllegalArgumentException();
@@ -53,7 +61,7 @@ public class App {
 
                         List<Process> processList = new ArrayList<>();
                         for (int i = 0; i < CLIENT_NUMBERS; i++) {
-                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", jarPath, "tcp", "c");
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "tcp", "c");
                             Process process = processBuilder.start();
                             processList.add(process);
                             //StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_SERVER " + String.valueOf(i));
@@ -93,7 +101,7 @@ public class App {
 
                         List<Process> processList = new ArrayList<>();
                         for (int i = 0; i < CLIENT_NUMBERS; i++) {
-                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", jarPath, "np", "c", String.valueOf(i));
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "np", "c", String.valueOf(i));
                             Process process = processBuilder.start();
                             processList.add(process);
                             StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_CLIENT " + String.valueOf(i));
@@ -129,7 +137,7 @@ public class App {
 
                         List<Process> processList = new ArrayList<>();
                         for (int i = 0; i < CLIENT_NUMBERS; i++) {
-                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", jarPath, "pipe", "c");
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "pipe", "c");
                             Process process = processBuilder.start();
                             processList.add(process);
                             //StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_SERVER " + String.valueOf(i));
