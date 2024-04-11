@@ -1,5 +1,5 @@
-org/betriebssysteme/IPCVariants/ZMQ/ZMQClient.class
 org/betriebssysteme/Utils/Utils.class
+org/betriebssysteme/IPCVariants/PIPE/PipeServer.class
 org/betriebssysteme/IPCVariants/NP/NamedPipeClient.class
 org/betriebssysteme/Classes/ClientStatus.class
 org/betriebssysteme/IPCVariants/TCP/TCPServer.class
@@ -8,9 +8,9 @@ org/betriebssysteme/Interfaces/IIPCClient.class
 org/betriebssysteme/App.class
 org/betriebssysteme/Classes/IPCClient.class
 org/betriebssysteme/IPCVariants/TCP/TCPClient$1.class
-org/betriebssysteme/IPCVariants/ZMQ/ZMQServer.class
 org/betriebssysteme/IPCVariants/TCP/TCPClient.class
 org/betriebssysteme/Classes/IPCServer.class
+org/betriebssysteme/IPCVariants/PIPE/PipeClient.class
 org/betriebssysteme/Enum/EPackage.class
 org/betriebssysteme/Classes/ClientHandler.class
 org/betriebssysteme/IPCVariants/NP/NamedPipeServer.class
