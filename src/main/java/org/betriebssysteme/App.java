@@ -7,6 +7,8 @@ import java.util.*;
 import org.betriebssysteme.Classes.StreamGobbler;
 import org.betriebssysteme.IPCVariants.NP.NamedPipeClient;
 import org.betriebssysteme.IPCVariants.NP.NamedPipeServer;
+import org.betriebssysteme.IPCVariants.PIPE.PipeClient;
+import org.betriebssysteme.IPCVariants.PIPE.PipeServer;
 import org.betriebssysteme.IPCVariants.TCP.TCPClient;
 import org.betriebssysteme.IPCVariants.TCP.TCPServer;
 
@@ -80,7 +82,7 @@ public class App {
                         CHUNK_SIZE = Integer.parseInt(args[3]);
                         FILE_PATH = args[4];
 
-                        TCPServer server = new NamedPipeServer(FILE_PATH);
+                        NamedPipeServer server = new NamedPipeServer(FILE_PATH);
                         Map<String, Object> configMap = new HashMap<>();
                         configMap.put("chunkSize", CHUNK_SIZE);
                         configMap.put("clientNumbers", CLIENT_NUMBERS);
@@ -108,6 +110,42 @@ public class App {
                         NamedPipeClient client = new NamedPipeClient();
                         Map<String, Object> configMap = new HashMap<>();
                         configMap.put("id", Integer.parseInt(args[2]));
+                        client.init(configMap);
+                        client.start();
+                    }
+                    break;
+                }
+                case "pipe": {
+                    if (args[1].equals("s")) {
+
+                        CLIENT_NUMBERS = Integer.parseInt(args[2]);
+                        CHUNK_SIZE = Integer.parseInt(args[3]);
+                        FILE_PATH = args[4];
+
+                        PipeServer server = new PipeServer(FILE_PATH);
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("chunkSize", CHUNK_SIZE);
+                        configMap.put("clientNumbers", CLIENT_NUMBERS);
+
+                        List<Process> processList = new ArrayList<>();
+                        for (int i = 0; i < CLIENT_NUMBERS; i++) {
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", jarPath, "pipe", "c");
+                            Process process = processBuilder.start();
+                            processList.add(process);
+                            //StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_SERVER " + String.valueOf(i));
+                            //outputGobbler.start();
+                        }
+
+                        server.setProcessList(processList);
+                        server.init(configMap);
+
+                        server.start();
+
+
+                    }
+                    if ((args[1].equals("c"))) {
+                        PipeClient client = new PipeClient();
+                        Map<String, Object> configMap = new HashMap<>();
                         client.init(configMap);
                         client.start();
                     }
