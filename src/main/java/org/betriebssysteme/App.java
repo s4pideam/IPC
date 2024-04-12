@@ -13,6 +13,8 @@ import org.betriebssysteme.IPCVariants.PIPE.PipeClient;
 import org.betriebssysteme.IPCVariants.PIPE.PipeServer;
 import org.betriebssysteme.IPCVariants.TCP.TCPClient;
 import org.betriebssysteme.IPCVariants.TCP.TCPServer;
+import org.betriebssysteme.IPCVariants.UDS.UnixDomainSocketClient;
+import org.betriebssysteme.IPCVariants.UDS.UnixDomainSocketServer;
 
 public class App {
 
@@ -104,13 +106,10 @@ public class App {
                             ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "np", "c", String.valueOf(i));
                             Process process = processBuilder.start();
                             processList.add(process);
-                            StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_CLIENT " + String.valueOf(i));
-                            outputGobbler.start();
-                            StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR_CLIENT " + String.valueOf(i));
-                            errorGobbler.start();
-                        }
-                        for (Process process : processList) {
-                            process.waitFor();
+                            //StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_CLIENT " + String.valueOf(i));
+                            //outputGobbler.start();
+                            //StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR_CLIENT " + String.valueOf(i));
+                            //errorGobbler.start();
                         }
                         mainThread.join();
                     }
@@ -153,6 +152,41 @@ public class App {
                     }
                     if ((args[1].equals("c"))) {
                         PipeClient client = new PipeClient();
+                        Map<String, Object> configMap = new HashMap<>();
+                        client.init(configMap);
+                        client.start();
+                    }
+                    break;
+                }
+                case "uds": {
+                    if (args[1].equals("s")) {
+                        CLIENT_NUMBERS = Integer.parseInt(args[2]);
+                        CHUNK_SIZE = Integer.parseInt(args[3]);
+                        FILE_PATH = args[4];
+
+                        UnixDomainSocketServer server = new UnixDomainSocketServer(FILE_PATH);
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("chunkSize", CHUNK_SIZE);
+                        configMap.put("clientNumbers", CLIENT_NUMBERS);
+                        server.init(configMap);
+
+                        Thread mainThread = new Thread(server::start);
+                        mainThread.start();
+
+                        List<Process> processList = new ArrayList<>();
+                        for (int i = 0; i < CLIENT_NUMBERS; i++) {
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "uds", "c", String.valueOf(i));
+                            Process process = processBuilder.start();
+                            processList.add(process);
+                            StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_CLIENT " + String.valueOf(i));
+                            outputGobbler.start();
+                            StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR_CLIENT " + String.valueOf(i));
+                            errorGobbler.start();
+                        }
+                        mainThread.join();
+                    }
+                    if ((args[1].equals("c"))) {
+                        UnixDomainSocketClient client = new UnixDomainSocketClient();
                         Map<String, Object> configMap = new HashMap<>();
                         client.init(configMap);
                         client.start();

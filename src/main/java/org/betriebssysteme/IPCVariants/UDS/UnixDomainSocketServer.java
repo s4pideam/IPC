@@ -1,7 +1,13 @@
-package org.betriebssysteme.IPCVariants.NP;
+package org.betriebssysteme.IPCVariants.UDS;
 
 import java.io.*;
+import java.net.StandardProtocolFamily;
+import java.net.UnixDomainSocketAddress;
+import java.nio.channels.Channels;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -11,15 +17,15 @@ import org.betriebssysteme.IPCVariants.TCP.TCPServer;
 import org.betriebssysteme.Record.Offsets;
 import org.betriebssysteme.Utils.Utils;
 
-public class NamedPipeServer extends TCPServer {
+public class UnixDomainSocketServer extends TCPServer {
     private List<List<Offsets>> offsets;
+    Path socketPath;
 
-    public NamedPipeServer(String filePath) {
+    public UnixDomainSocketServer(String filePath) {
         super(filePath);
+        this.rapidFlush = true;
     }
 
-    private Path[] serverToClientNamedPipes;
-    private Path[] clientToServerNamedPipes;
 
     @Override
     public void init(Map<String, Object> configMap) {
@@ -28,29 +34,27 @@ public class NamedPipeServer extends TCPServer {
         this.offsets = this.getOffsets(CLIENT_NUMBERS, CHUNK_SIZE);
         this.alphabetSplit = this.splitAlphabet(CLIENT_NUMBERS);
 
-        serverToClientNamedPipes = new Path[CLIENT_NUMBERS];
-        clientToServerNamedPipes = new Path[CLIENT_NUMBERS];
-
-        for (int i = 0; i < this.CLIENT_NUMBERS; i++) {
-            // init named pipes
-            Path serverToClient = FileSystems.getDefault().getPath("./np/server_to_client" + i);
-            serverToClientNamedPipes[i] = serverToClient;
-            Path clientToServer = FileSystems.getDefault().getPath("./np/client_to_server" + i);
-            clientToServerNamedPipes[i] = clientToServer;
-            Utils.createNamedPipe(serverToClient);
-            Utils.createNamedPipe(clientToServer);
+        socketPath = FileSystems.getDefault().getPath("./uds/server.socket");
+        socketPath.toFile().mkdirs();
+        try {
+            Files.deleteIfExists(socketPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+
+
     }
 
     @Override
     public void start() {
         int currentIndex = 0;
-        try {
+        UnixDomainSocketAddress socketAddress = UnixDomainSocketAddress.of(socketPath);
+        try(ServerSocketChannel serverChannel = ServerSocketChannel.open(StandardProtocolFamily.UNIX)){
+            serverChannel.bind(socketAddress);
             while (currentIndex < this.CLIENT_NUMBERS) {
-                DataInputStream clientInputStream = new DataInputStream(
-                        new FileInputStream(clientToServerNamedPipes[currentIndex].toString()));
-                DataOutputStream clientOutputStream = new DataOutputStream(
-                        new FileOutputStream(serverToClientNamedPipes[currentIndex].toString()));
+                SocketChannel channel = serverChannel.accept();
+                DataInputStream clientInputStream = new DataInputStream(Channels.newInputStream(channel));
+                DataOutputStream clientOutputStream = new DataOutputStream(Channels.newOutputStream(channel));
                 Thread thread = new Thread(
                         new ClientHandler(this, clientInputStream, clientOutputStream, offsets.get(currentIndex)));
                 String key = String.join("", alphabetSplit.get(currentIndex));

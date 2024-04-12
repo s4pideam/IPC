@@ -30,8 +30,6 @@ public class NamedPipeClient extends TCPClient {
         connected = true;
     }
 
-
-
     @Override
     public void disconnect() {
         try {

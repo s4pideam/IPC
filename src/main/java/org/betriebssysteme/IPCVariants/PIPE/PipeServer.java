@@ -1,13 +1,16 @@
 package org.betriebssysteme.IPCVariants.PIPE;
 
-import org.betriebssysteme.Classes.ClientHandler;
 import org.betriebssysteme.Classes.ClientStatus;
+import org.betriebssysteme.Classes.IPCServer;
+import org.betriebssysteme.Enum.EPackage;
 import org.betriebssysteme.IPCVariants.TCP.TCPServer;
 import org.betriebssysteme.Record.Offsets;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 public class PipeServer extends TCPServer {
     private List<List<Offsets>> offsets;
@@ -16,7 +19,7 @@ public class PipeServer extends TCPServer {
 
     public PipeServer(String filePath) {
         super(filePath);
-
+        this.rapidFlush = true;
     }
 
     @Override
@@ -64,6 +67,4 @@ public class PipeServer extends TCPServer {
                 .forEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));
 
     }
-
-
 }

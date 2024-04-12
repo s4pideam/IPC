@@ -17,6 +17,7 @@ public class TCPClient extends IPCClient {
     private Socket socket;
     private int PORT;
     private String HOST;
+    protected boolean rapidFlush = false;
 
 
     private final HashMap<String, HashMap<String, Integer>> wordCount = new HashMap<>();
@@ -98,6 +99,7 @@ public class TCPClient extends IPCClient {
                         break;
                     }
                     case REDUCE: {
+                        System.out.println("reduced");
                         String word;
                         String key;
                         int dataSize = this.inputStream.readInt();
@@ -149,6 +151,9 @@ public class TCPClient extends IPCClient {
                 case CONNECTED:
                 case MAP: {
                     out.write(header.getValue());
+                    if (rapidFlush) {
+                        out.flush();
+                    }
                     break;
                 }
                 case SHUFFLE:

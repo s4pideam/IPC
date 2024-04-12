@@ -8,6 +8,7 @@ import java.util.Map;
 public class PipeClient extends TCPClient {
 
     public PipeClient() {
+        this.rapidFlush = true;
     }
 
     @Override
