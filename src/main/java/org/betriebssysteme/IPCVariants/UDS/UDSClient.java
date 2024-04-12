@@ -154,7 +154,6 @@ public class UDSClient extends IPCClient {
                     byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
                     UDSServer.writeInt(channel, bytes.length);
                     UDSServer.write(channel, bytes, bytes.length);
-                    //out.flush();
                     break;
                 }
                 default:

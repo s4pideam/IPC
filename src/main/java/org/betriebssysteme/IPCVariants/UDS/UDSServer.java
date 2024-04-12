@@ -155,10 +155,12 @@ public class UDSServer extends IPCServer{
         return channel.write(buffer);
     }
 
-    public static int write(SocketChannel channel, byte[] data, int dataLength) throws IOException{
+    public static void write(SocketChannel channel, byte[] data, int dataLength) throws IOException{
         ByteBuffer buffer = ByteBuffer.allocate(dataLength);
         buffer.put(data);
         buffer.flip();
-        return channel.write(buffer);
+        while(buffer.hasRemaining()){
+            channel.write(buffer);
+        }
     }
 }

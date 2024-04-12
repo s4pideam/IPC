@@ -130,7 +130,9 @@ public class UDSClientHandler extends Thread {
 
     public static byte[] readFully(SocketChannel channel, int bytes) throws IOException{
         ByteBuffer buffer = ByteBuffer.allocate(bytes);
-        channel.read(buffer);
+        while(buffer.hasRemaining()){
+            channel.read(buffer);
+        }
         return buffer.array();
     }
 }
