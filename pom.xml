@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.betriebssysteme</groupId>
-  <artifactId>tcp</artifactId>
+  <artifactId>ipc</artifactId>
   <version>1.0-SNAPSHOT</version>
 
   <name>tcp</name>
