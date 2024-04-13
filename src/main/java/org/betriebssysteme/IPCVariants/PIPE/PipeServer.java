@@ -1,19 +1,14 @@
 package org.betriebssysteme.IPCVariants.PIPE;
 
 import org.betriebssysteme.Classes.ClientStatus;
-import org.betriebssysteme.Classes.IPCServer;
-import org.betriebssysteme.Enum.EPackage;
-import org.betriebssysteme.IPCVariants.TCP.TCPServer;
-import org.betriebssysteme.Record.Offsets;
+import org.betriebssysteme.Classes.OutputStreamClientHandler;
+import org.betriebssysteme.Classes.OutputStreamServer;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 
-public class PipeServer extends TCPServer {
-    private List<List<Offsets>> offsets;
+public class PipeServer extends OutputStreamServer {
     private List<Process> processList = new ArrayList<>();
 
 
@@ -41,7 +36,7 @@ public class PipeServer extends TCPServer {
             DataInputStream clientInputStream = new DataInputStream(process.getInputStream());
             DataOutputStream clientOutputStream = new DataOutputStream(process.getOutputStream());
             Thread thread = new Thread(
-                    new ClientHandler(this, clientInputStream, clientOutputStream, offsets.get(currentIndex)));
+                    new OutputStreamClientHandler(this, clientInputStream, clientOutputStream, offsets.get(currentIndex)));
             String key = String.join("", alphabetSplit.get(currentIndex));
             this.clientQueue.put(key, clientOutputStream);
             this.clientThreads.put(key, thread);

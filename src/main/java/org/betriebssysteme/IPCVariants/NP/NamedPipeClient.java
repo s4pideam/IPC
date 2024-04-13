@@ -4,10 +4,12 @@ import java.io.*;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Map;
+
+import org.betriebssysteme.Classes.OutputStreamClient;
 import org.betriebssysteme.IPCVariants.TCP.TCPClient;
 import org.betriebssysteme.Utils.Utils;
 
-public class NamedPipeClient extends TCPClient {
+public class NamedPipeClient extends OutputStreamClient {
 
     public NamedPipeClient()  {
     }

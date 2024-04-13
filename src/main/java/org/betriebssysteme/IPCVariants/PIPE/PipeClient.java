@@ -1,11 +1,12 @@
 package org.betriebssysteme.IPCVariants.PIPE;
 
+import org.betriebssysteme.Classes.OutputStreamClient;
 import org.betriebssysteme.IPCVariants.TCP.TCPClient;
 
 import java.io.*;
 import java.util.Map;
 
-public class PipeClient extends TCPClient {
+public class PipeClient extends OutputStreamClient {
 
     public PipeClient() {
         this.rapidFlush = true;

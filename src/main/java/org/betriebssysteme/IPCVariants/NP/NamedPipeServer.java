@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.betriebssysteme.Classes.ClientStatus;
+import org.betriebssysteme.Classes.OutputStreamClientHandler;
+import org.betriebssysteme.Classes.OutputStreamServer;
 import org.betriebssysteme.IPCVariants.TCP.TCPServer;
 import org.betriebssysteme.Record.Offsets;
 import org.betriebssysteme.Utils.Utils;
 
-public class NamedPipeServer extends TCPServer {
+public class NamedPipeServer extends OutputStreamServer {
     private List<List<Offsets>> offsets;
 
     public NamedPipeServer(String filePath) {
@@ -52,7 +54,7 @@ public class NamedPipeServer extends TCPServer {
                 DataOutputStream clientOutputStream = new DataOutputStream(
                         new FileOutputStream(serverToClientNamedPipes[currentIndex].toString()));
                 Thread thread = new Thread(
-                        new ClientHandler(this, clientInputStream, clientOutputStream, offsets.get(currentIndex)));
+                        new OutputStreamClientHandler(this, clientInputStream, clientOutputStream, offsets.get(currentIndex)));
                 String key = String.join("", alphabetSplit.get(currentIndex));
                 this.clientQueue.put(key, clientOutputStream);
                 this.clientThreads.put(key, thread);
