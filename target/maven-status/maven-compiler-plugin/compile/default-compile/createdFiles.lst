@@ -1,20 +1,34 @@
 org/betriebssysteme/Utils/Utils.class
 org/betriebssysteme/IPCVariants/NP/NamedPipeClient.class
 org/betriebssysteme/Classes/ClientStatus.class
+<<<<<<< HEAD
 org/betriebssysteme/IPCVariants/TCP/TCPServer.class
 org/betriebssysteme/IPCVariants/UDS/UnixDomainSocketServer.class
+=======
+>>>>>>> origin/uds
 org/betriebssysteme/Interfaces/IIPCServer.class
 org/betriebssysteme/Interfaces/IIPCClient.class
-org/betriebssysteme/App.class
 org/betriebssysteme/Classes/IPCClient.class
-org/betriebssysteme/IPCVariants/TCP/TCPClient$1.class
 org/betriebssysteme/IPCVariants/TCP/TCPClient.class
 org/betriebssysteme/Classes/IPCServer.class
+org/betriebssysteme/IPCVariants/TCP/TCPServer$1.class
+org/betriebssysteme/Record/Offsets.class
+org/betriebssysteme/IPCVariants/TCP/TCPServer.class
+org/betriebssysteme/App.class
+org/betriebssysteme/IPCVariants/TCP/TCPClient$1.class
 org/betriebssysteme/Enum/EPackage.class
+<<<<<<< HEAD
 org/betriebssysteme/IPCVariants/UDS/UnixDomainSocketClient.class
+=======
+org/betriebssysteme/IPCVariants/UDS/UDSClientHandler$1.class
+org/betriebssysteme/Classes/ClientHandler.class
+>>>>>>> origin/uds
 org/betriebssysteme/IPCVariants/NP/NamedPipeServer.class
 org/betriebssysteme/IPCVariants/TCP/TCPServer$ClientHandler.class
 org/betriebssysteme/Classes/StreamGobbler.class
-org/betriebssysteme/IPCVariants/TCP/TCPServer$1.class
 org/betriebssysteme/Interfaces/ITextTokenizer.class
+<<<<<<< HEAD
 org/betriebssysteme/Record/Offsets.class
+=======
+org/betriebssysteme/Classes/ClientHandler$1.class
+>>>>>>> origin/uds
