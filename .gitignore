@@ -1,7 +1,10 @@
 .idea
 .vscode
 .settings
-.np/*
+
+
+uds/
+np/
 target/
 
 # Compiled class file
