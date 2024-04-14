@@ -4,6 +4,8 @@
 .classpath
 .project
 ipc.iml
+results.csv
+
 
 uds/
 np/
