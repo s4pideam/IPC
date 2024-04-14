@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import org.betriebssysteme.Classes.StreamGobbler;
 import org.betriebssysteme.IPCVariants.NP.NamedPipeClient;
 import org.betriebssysteme.IPCVariants.NP.NamedPipeServer;
 import org.betriebssysteme.IPCVariants.PIPE.PipeClient;
@@ -14,6 +13,8 @@ import org.betriebssysteme.IPCVariants.TCP.TCPClient;
 import org.betriebssysteme.IPCVariants.TCP.TCPServer;
 import org.betriebssysteme.IPCVariants.UDS.UDSClient;
 import org.betriebssysteme.IPCVariants.UDS.UDSServer;
+import org.betriebssysteme.Plain.Single.Single;
+import org.betriebssysteme.Plain.Threaded.ThreadServer;
 
 public class App {
 
@@ -32,22 +33,49 @@ public class App {
                 execPath = parentPath.resolve("ipc.jar");
             }
 
-
-
-
             if (args.length < 2) {
                 throw new IllegalArgumentException();
             }
-
-
-
+            long startTime = System.nanoTime();
             switch (args[0]) {
-                case "tcp": {
-                    if (args[1].equals("s")) {
+                case "single": {
+                    CHUNK_SIZE = Integer.parseInt(args[1]);
+                    FILE_PATH = args[2];
+                    Single single = new Single(FILE_PATH,CHUNK_SIZE);
+                    single.count();
+                    double runtimeInSeconds = (System.nanoTime() - startTime) / 1e9;
+                    System.out.println("Runtime: " + runtimeInSeconds + " s");
+                    break;
+                }
+                case "threads": {
+                    CLIENT_NUMBERS = Integer.parseInt(args[1]);
+                    CHUNK_SIZE = Integer.parseInt(args[2]);
+                    FILE_PATH = args[3];
 
-                        CLIENT_NUMBERS = Integer.parseInt(args[2]);
-                        CHUNK_SIZE = Integer.parseInt(args[3]);
-                        FILE_PATH = args[4];
+                    ThreadServer server = new ThreadServer(FILE_PATH);
+                    Map<String, Object> configMap = new HashMap<>();
+                    configMap.put("chunkSize", CHUNK_SIZE);
+                    configMap.put("clientNumbers", CLIENT_NUMBERS);
+                    server.init(configMap);
+
+                    server.start();
+                    double runtimeInSeconds = (System.nanoTime() - startTime) / 1e9;
+                    System.out.println("Runtime: " + runtimeInSeconds + " s");
+                    break;
+                }
+                case "tcp": {
+                    if ((args[1].equals("c"))) {
+                        System.out.println("start");
+                        TCPClient client = new TCPClient();
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("host", HOST);
+                        configMap.put("port", PORT);
+                        client.init(configMap);
+                        client.start();
+                    }else{
+                        CLIENT_NUMBERS = Integer.parseInt(args[1]);
+                        CHUNK_SIZE = Integer.parseInt(args[2]);
+                        FILE_PATH = args[3];
 
                         TCPServer server = new TCPServer(FILE_PATH);
                         Map<String, Object> configMap = new HashMap<>();
@@ -72,24 +100,23 @@ public class App {
                             process.waitFor();
                         }
                         mainThread.join();
-                    }
-                    if ((args[1].equals("c"))) {
-                        System.out.println("start");
-                        TCPClient client = new TCPClient();
-                        Map<String, Object> configMap = new HashMap<>();
-                        configMap.put("host", HOST);
-                        configMap.put("port", PORT);
-                        client.init(configMap);
-                        client.start();
+                        double runtimeInSeconds = (System.nanoTime() - startTime) / 1e9;
+                        System.out.println("Runtime: " + runtimeInSeconds + " s");
                     }
                     break;
                 }
                 case "np": {
-                    if (args[1].equals("s")) {
 
-                        CLIENT_NUMBERS = Integer.parseInt(args[2]);
-                        CHUNK_SIZE = Integer.parseInt(args[3]);
-                        FILE_PATH = args[4];
+                    if ((args[1].equals("c"))) {
+                        NamedPipeClient client = new NamedPipeClient();
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("id", Integer.parseInt(args[2]));
+                        client.init(configMap);
+                        client.start();
+                    }else{
+                        CLIENT_NUMBERS = Integer.parseInt(args[1]);
+                        CHUNK_SIZE = Integer.parseInt(args[2]);
+                        FILE_PATH = args[3];
 
                         NamedPipeServer server = new NamedPipeServer(FILE_PATH);
                         Map<String, Object> configMap = new HashMap<>();
@@ -111,22 +138,21 @@ public class App {
                             //errorGobbler.start();
                         }
                         mainThread.join();
-                    }
-                    if ((args[1].equals("c"))) {
-                        NamedPipeClient client = new NamedPipeClient();
-                        Map<String, Object> configMap = new HashMap<>();
-                        configMap.put("id", Integer.parseInt(args[2]));
-                        client.init(configMap);
-                        client.start();
+                        double runtimeInSeconds = (System.nanoTime() - startTime) / 1e9;
+                        System.out.println("Runtime: " + runtimeInSeconds + " s");
                     }
                     break;
                 }
-                case "pipe": {
-                    if (args[1].equals("s")) {
-
-                        CLIENT_NUMBERS = Integer.parseInt(args[2]);
-                        CHUNK_SIZE = Integer.parseInt(args[3]);
-                        FILE_PATH = args[4];
+                case "pipes": {
+                    if ((args[1].equals("c"))) {
+                        PipeClient client = new PipeClient();
+                        Map<String, Object> configMap = new HashMap<>();
+                        client.init(configMap);
+                        client.start();
+                    }else{
+                        CLIENT_NUMBERS = Integer.parseInt(args[1]);
+                        CHUNK_SIZE = Integer.parseInt(args[2]);
+                        FILE_PATH = args[3];
 
                         PipeServer server = new PipeServer(FILE_PATH);
                         Map<String, Object> configMap = new HashMap<>();
@@ -134,7 +160,7 @@ public class App {
                         configMap.put("clientNumbers", CLIENT_NUMBERS);
 
                         List<Process> processList = new ArrayList<>();
-                        ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "pipe", "c");
+                        ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "pipes", "c");
                         for (int i = 0; i < CLIENT_NUMBERS; i++) {
                             Process process = processBuilder.start();
                             processList.add(process);
@@ -148,22 +174,24 @@ public class App {
                         server.init(configMap);
 
                         server.start();
-
-
-                    }
-                    if ((args[1].equals("c"))) {
-                        PipeClient client = new PipeClient();
-                        Map<String, Object> configMap = new HashMap<>();
-                        client.init(configMap);
-                        client.start();
+                        double runtimeInSeconds = (System.nanoTime() - startTime) / 1e9;
+                        System.out.println("Runtime: " + runtimeInSeconds + " s");
                     }
                     break;
                 }
                 case "uds": {
-                    if(args[1].equals("s")){
-                        CLIENT_NUMBERS = Integer.parseInt(args[2]);
-                        CHUNK_SIZE = Integer.parseInt(args[3]);
-                        FILE_PATH = args[4];
+                    if ((args[1].equals("c"))) {
+                        System.out.println("start");
+                        UDSClient client = new UDSClient();
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("host", HOST);
+                        configMap.put("port", PORT);
+                        client.init(configMap);
+                        client.start();
+                    }else{
+                        CLIENT_NUMBERS = Integer.parseInt(args[1]);
+                        CHUNK_SIZE = Integer.parseInt(args[2]);
+                        FILE_PATH = args[3];
                         UDSServer server = new UDSServer(FILE_PATH);
                         Map<String, Object> configMap = new HashMap<>();
                         configMap.put("chunkSize", CHUNK_SIZE);
@@ -187,15 +215,8 @@ public class App {
                             process.waitFor();
                         }
                         mainThread.join();
-                    }
-                    if ((args[1].equals("c"))) {
-                        System.out.println("start");
-                        UDSClient client = new UDSClient();
-                        Map<String, Object> configMap = new HashMap<>();
-                        configMap.put("host", HOST);
-                        configMap.put("port", PORT);
-                        client.init(configMap);
-                        client.start();
+                        double runtimeInSeconds = (System.nanoTime() - startTime) / 1e9;
+                        System.out.println("Runtime: " + runtimeInSeconds + " s");
                     }
                     break;
                 }

@@ -1,8 +1,8 @@
-package org.betriebssysteme.Classes;
+package org.betriebssysteme.Plain.Threaded;
 
-import java.io.DataOutputStream;
+import org.betriebssysteme.Record.Offsets;
+
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,41 +10,69 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import org.betriebssysteme.Enum.EPackage;
-import org.betriebssysteme.Interfaces.IIPCServer;
-import org.betriebssysteme.Interfaces.ITextTokenizer;
-import org.betriebssysteme.Record.Offsets;
-
-public class IPCServer implements IIPCServer, ITextTokenizer {
+public class ThreadServer {
     private RandomAccessFile randomAccessFile = null;
-
-    public ConcurrentHashMap<String, DataOutputStream> clientQueue = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, ThreadClient> clientQueue = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, Thread> clientThreads = new ConcurrentHashMap<>();
     public List<List<String>> alphabetSplit = new ArrayList<>();
-    public ConcurrentHashMap<OutputStream, ClientStatus> clientStatus = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, Integer> wordCount = new ConcurrentHashMap<>();
-
+    protected List<List<Offsets>> offsets;
     public int CLIENT_NUMBERS;
+    public int CHUNK_SIZE;
 
-    public IPCServer(String filePath) {
+    public final Object lock = new Object();
+
+    public ThreadServer(String filePath){
         try {
             this.randomAccessFile = new RandomAccessFile(filePath, "r");
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
-    @Override
-    protected void finalize() throws Throwable {
+
+    public void init(Map<String, Object> configMap) {
+        this.CHUNK_SIZE = Math.max((int) configMap.getOrDefault("chunkSize", 32), 32);
+        this.CLIENT_NUMBERS = Math.min((int) configMap.getOrDefault("clientNumbers", 2), 24);
+        this.offsets = this.getOffsets(CLIENT_NUMBERS, CHUNK_SIZE);
+        this.alphabetSplit = this.splitAlphabet(CLIENT_NUMBERS);
+    }
+
+    public void start() {
+        int currentIndex = 0;
+        List<String> joinedAlphabetSplit = this.alphabetSplit.stream()
+                .map(innerList -> String.join("", innerList))
+                .collect(Collectors.toList());
         try {
-            this.randomAccessFile.close();
+            while (currentIndex < this.CLIENT_NUMBERS) {
+                ThreadClient threadClient = new ThreadClient(this,currentIndex, joinedAlphabetSplit,  offsets.get(currentIndex));
+                Thread thread = new Thread(threadClient);
+                String key = joinedAlphabetSplit.get(currentIndex);
+                this.clientQueue.put(key, threadClient);
+                this.clientThreads.put(key, thread);
+                currentIndex++;
+            }
+
+            clientThreads.values().forEach(Thread::start);
+
+            for (Thread thread : clientThreads.values()) {
+                thread.join();
+            }
+
+            wordCount.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                    .limit(10)
+                    .forEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public List<List<String>> splitAlphabet(int clientNumbers) {
+    private List<List<String>> splitAlphabet(int clientNumbers) {
         String alphabet = "abcdefghijklmnopqrstuvwxyz";
         int totalElements = alphabet.length();
         int elementsPerSublist = totalElements / clientNumbers;
@@ -92,8 +120,7 @@ public class IPCServer implements IIPCServer, ITextTokenizer {
         return offsets.stream().mapToInt(Integer::intValue).toArray();
     }
 
-    @Override
-    public List<List<Offsets>> getOffsets(int clientNumbers, int chunkSize) {
+    private List<List<Offsets>> getOffsets(int clientNumbers, int chunkSize) {
         int[] offsets = this.getOffsets(chunkSize);
         int totalElements = offsets.length;
         int elementsPerSublist = totalElements / clientNumbers;
@@ -116,7 +143,6 @@ public class IPCServer implements IIPCServer, ITextTokenizer {
         return outputOffsetList;
     }
 
-    @Override
     public byte[] getChunk(int offset, int length) {
         synchronized (this.randomAccessFile) {
             byte[] chunk = new byte[length];
@@ -131,28 +157,12 @@ public class IPCServer implements IIPCServer, ITextTokenizer {
     }
 
     @Override
-    public void start() {
-        throw new UnsupportedOperationException("Unimplemented method 'start'");
-    }
-
-    @Override
-    public void stop() {
-        throw new UnsupportedOperationException("Unimplemented method 'stop'");
-    }
-
-    @Override
-    public void init(Map<String, Object> configMap) {
-        throw new UnsupportedOperationException("Unimplemented method 'init'");
-    }
-
-    @Override
-    public void send(DataOutputStream dataOutputStream, EPackage epackage, String message) {
-        throw new UnsupportedOperationException("Unimplemented method 'init'");
-    }
-
-    @Override
-    public void updateWordCount(String word, int count) {
-        throw new UnsupportedOperationException("Unimplemented method 'init'");
+    protected void finalize() throws Throwable {
+        try {
+            this.randomAccessFile.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }

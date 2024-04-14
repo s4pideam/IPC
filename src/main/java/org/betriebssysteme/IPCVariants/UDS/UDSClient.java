@@ -62,7 +62,7 @@ public class UDSClient extends IPCClient {
                         int dataSize = UDSClientHandler.readInt(channel, intBuffer);
                         byte[] data = UDSClientHandler.readFully(channel, dataSize);
                         String message = new String(data, StandardCharsets.UTF_8);
-                        String[] parts = message.split(EPackage.STRING_DELIMETER);
+                        String[] parts = message.split(EPackage.STRING_DELIMITER);
                         this.clientIndex = Integer.parseInt(parts[0]);
                         this.alphabetSplit = new String[parts.length - 1];
                         for (int i = 1; i < parts.length; i++) {
@@ -81,7 +81,7 @@ public class UDSClient extends IPCClient {
                         break;
                     }
                     case SHUFFLE: {
-                        StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMETER);
+                        StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMITER);
                         for (int i = 0; i < this.alphabetSplit.length; i++) {
                             if (this.clientIndex == i)
                                 continue;
@@ -102,7 +102,7 @@ public class UDSClient extends IPCClient {
                         int dataSize = UDSClientHandler.readInt(channel, intBuffer);
                         byte[] data = UDSClientHandler.readFully(channel, dataSize);
                         String message = new String(data, StandardCharsets.UTF_8);
-                        String[] parts = message.split(EPackage.STRING_DELIMETER);
+                        String[] parts = message.split(EPackage.STRING_DELIMITER);
                         if (parts.length > 1) {
                             for (int i = 0; i < parts.length; i += 2) {
                                 if (i + 1 >= parts.length) {
@@ -117,7 +117,7 @@ public class UDSClient extends IPCClient {
                         break;
                     }
                     case MERGE: {
-                        StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMETER);
+                        StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMITER);
                         for (Map.Entry<String, Integer> entry : this.wordCount
                                 .get(this.alphabetSplit[this.clientIndex])
                                 .entrySet()) {

@@ -57,12 +57,12 @@ public class OutputStreamClientHandler extends Thread {
                         byte[] data = new byte[dataSize];
                         this.inputStream.readFully(data);
                         String message = new String(data, StandardCharsets.UTF_8);
-                        String[] parts = message.split(EPackage.STRING_DELIMETER);
+                        String[] parts = message.split(EPackage.STRING_DELIMITER);
                         int i = 0;
                         if (parts.length > 1) {
                             while (i < parts.length) {
                                 String key = parts[i];
-                                StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMETER);
+                                StringJoiner sj = new StringJoiner(EPackage.STRING_DELIMITER);
                                 int count = Integer.parseInt(parts[i + 1]) * 2;
                                 i = i + 2;
                                 count = count + i;
@@ -93,7 +93,7 @@ public class OutputStreamClientHandler extends Thread {
                         byte[] data = new byte[dataSize];
                         this.inputStream.readFully(data);
                         String message = new String(data, StandardCharsets.UTF_8);
-                        String[] parts = message.split(EPackage.STRING_DELIMETER);
+                        String[] parts = message.split(EPackage.STRING_DELIMITER);
                         for (int i = 0; i < parts.length - 1; i = i + 2) {
                             String word = parts[i];
                             int count = Integer.parseInt(parts[i + 1]);

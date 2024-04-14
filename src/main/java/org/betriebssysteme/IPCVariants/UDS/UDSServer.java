@@ -85,10 +85,10 @@ public class UDSServer extends IPCServer{
     }
 
     protected void generateInitMessage(SocketChannel channel, int index) {
-        String result = index + EPackage.STRING_DELIMETER +
+        String result = index + EPackage.STRING_DELIMITER +
                 alphabetSplit.stream()
                         .map(innerList -> String.join("", innerList))
-                        .collect(Collectors.joining(EPackage.STRING_DELIMETER));
+                        .collect(Collectors.joining(EPackage.STRING_DELIMITER));
         this.send(channel, EPackage.INIT, result);
 
     }

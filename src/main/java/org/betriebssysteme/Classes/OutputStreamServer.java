@@ -3,12 +3,10 @@ package org.betriebssysteme.Classes;
 import org.betriebssysteme.Enum.EPackage;
 import org.betriebssysteme.Record.Offsets;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class OutputStreamServer extends IPCServer {
@@ -23,10 +21,10 @@ public class OutputStreamServer extends IPCServer {
     }
 
     protected void generateInitMessage(DataOutputStream out, int index) {
-        String result = index + EPackage.STRING_DELIMETER +
+        String result = index + EPackage.STRING_DELIMITER +
                 alphabetSplit.stream()
                         .map(innerList -> String.join("", innerList))
-                        .collect(Collectors.joining(EPackage.STRING_DELIMETER));
+                        .collect(Collectors.joining(EPackage.STRING_DELIMITER));
         this.send(out, EPackage.INIT, result);
 
     }

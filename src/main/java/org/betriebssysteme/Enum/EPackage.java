@@ -12,7 +12,7 @@ public enum EPackage {
     private final byte value;
 
 
-    public final static String STRING_DELIMETER = "#";
+    public final static String STRING_DELIMITER = "#";
     public final static int PACKET_SIZE_LENGTH = 8;
     private EPackage(byte value) {
         this.value = value;
