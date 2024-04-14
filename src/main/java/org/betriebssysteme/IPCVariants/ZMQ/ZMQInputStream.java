@@ -1,35 +1,29 @@
 package org.betriebssysteme.IPCVariants.ZMQ;
 
-import org.zeromq.ZMQ;
-
 import java.io.IOException;
 import java.io.InputStream;
+import org.zeromq.ZMQ;
 
-public class ZMQInputStream extends java.io.DataInputStream {
+public class ZMQInputStream extends InputStream {
     private ZMQ.Socket socket;
+    private byte[] clientIdentity;
+    private byte[] buffer;
+    private int bufferIndex = 0;
 
-    public ZMQInputStream(ZMQ.Socket socket) {
-        super(new InputStream() {
-            @Override
-            public int read() throws IOException {
-                byte[] buffer = socket.recv(0);
-                if (buffer == null || buffer.length == 0) {
-                    return -1;
-                }
-                return buffer[0] & 0xFF;
-            }
-
-            @Override
-            public int read(byte[] b, int off, int len) throws IOException {
-                byte[] data = socket.recv(0);
-                if (data == null) {
-                    return -1;
-                }
-                int bytesRead = Math.min(len, data.length);
-                System.arraycopy(data, 0, b, off, bytesRead);
-                return bytesRead;
-            }
-        });
+    public ZMQInputStream(ZMQ.Socket socket, byte[] clientIdentity) {
         this.socket = socket;
+        this.clientIdentity = clientIdentity;
+    }
+
+    @Override
+    public int read() throws IOException {
+        if (buffer == null || bufferIndex >= buffer.length) {
+            buffer = socket.recv(0);
+            bufferIndex = 0;
+            if (buffer == null || buffer.length == 0) {
+                return -1; // Keine Daten verfügbar
+            }
+        }
+        return buffer[bufferIndex++] & 0xFF;
     }
 }

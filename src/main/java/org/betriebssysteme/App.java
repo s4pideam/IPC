@@ -13,8 +13,8 @@ import org.betriebssysteme.IPCVariants.TCP.TCPClient;
 import org.betriebssysteme.IPCVariants.TCP.TCPServer;
 import org.betriebssysteme.IPCVariants.UDS.UDSClient;
 import org.betriebssysteme.IPCVariants.UDS.UDSServer;
-import org.betriebssysteme.IPCVariants.ZMQ.ZMQClient2;
-import org.betriebssysteme.IPCVariants.ZMQ.ZMQServer2;
+import org.betriebssysteme.IPCVariants.ZMQ.ZMQClient;
+import org.betriebssysteme.IPCVariants.ZMQ.ZMQServer;
 import org.betriebssysteme.Plain.Single.Single;
 import org.betriebssysteme.Plain.Threaded.ThreadServer;
 
@@ -225,7 +225,7 @@ public class App {
                 case "zmq": {
                     if (args[1].equals("c")) {
                         // Client mode
-                        ZMQClient2 client = new ZMQClient2();
+                        ZMQClient client = new ZMQClient();
                         Map<String, Object> configMap = new HashMap<>();
                         configMap.put("host", HOST);
                         configMap.put("port", PORT);
@@ -237,7 +237,7 @@ public class App {
                         CHUNK_SIZE = Integer.parseInt(args[2]);
                         FILE_PATH = args[3];
 
-                        ZMQServer2 server = new ZMQServer2(FILE_PATH);
+                        ZMQServer server = new ZMQServer(FILE_PATH);
                         Map<String, Object> configMap = new HashMap<>();
                         configMap.put("port", PORT);
                         configMap.put("chunkSize", CHUNK_SIZE);

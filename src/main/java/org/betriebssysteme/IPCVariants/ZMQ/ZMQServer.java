@@ -42,8 +42,8 @@ public class ZMQServer extends OutputStreamServer {
                 // Empfange Identität des Clients und danach die Nachricht
                 byte[] clientIdentity = socket.recv(0);
                 byte[] request = socket.recv(0);
-                DataInputStream clientInputStream = new DataInputStream(new ZMQInputStream(socket));
-                DataOutputStream clientOutputStream = new DataOutputStream(new ZMQOutputStream(socket));
+                DataInputStream clientInputStream = new DataInputStream(new ZMQInputStream(socket, clientIdentity));
+                DataOutputStream clientOutputStream = new DataOutputStream(new ZMQOutputStream(socket, clientIdentity));
 
                 Thread thread = new Thread(
                         new OutputStreamClientHandler(this, clientInputStream, clientOutputStream, offsets.get(currentIndex)));

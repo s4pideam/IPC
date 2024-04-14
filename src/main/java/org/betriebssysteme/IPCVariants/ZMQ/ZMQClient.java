@@ -18,15 +18,11 @@ public class ZMQClient extends OutputStreamClient {
     @Override
     public void init(Map<String, Object> configMap) {
         String address = (String) configMap.getOrDefault("address", "tcp://localhost:42069");
-        try {
-            this.context = new ZContext();
-            this.socket = context.createSocket(SocketType.DEALER);
-            this.socket.connect(address);
-            this.outputStream = new DataOutputStream(new ZMQOutputStream(socket));
-            this.inputStream = new DataInputStream(new ZMQInputStream(socket));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        this.context = new ZContext();
+        this.socket = context.createSocket(SocketType.DEALER);
+        this.socket.connect(address);
+        this.outputStream = new DataOutputStream(new ZMQOutputStream(socket, null)); // Keine Identität nötig für DEALER
+        this.inputStream = new DataInputStream(new ZMQInputStream(socket, null));
     }
 
     @Override
@@ -40,6 +36,4 @@ public class ZMQClient extends OutputStreamClient {
             context = null;
         }
     }
-
-
 }

@@ -1,36 +1,28 @@
 package org.betriebssysteme.IPCVariants.ZMQ;
-import org.zeromq.ZMQ;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import org.zeromq.ZMQ;
 
-public class ZMQOutputStream extends java.io.DataOutputStream {
+public class ZMQOutputStream extends OutputStream {
     private ZMQ.Socket socket;
+    private byte[] clientIdentity;
 
-    public ZMQOutputStream(ZMQ.Socket socket) {
-        super(new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                socket.send(new byte[]{(byte) b}, 0);
-            }
-
-            @Override
-            public void write(byte[] b, int off, int len) throws IOException {
-                byte[] data = new byte[len];
-                System.arraycopy(b, off, data, 0, len);
-                socket.send(data, 0);
-            }
-
-            @Override
-            public void flush() throws IOException {
-                // Flushing might not be needed depending on the ZMQ socket type and configuration.
-            }
-
-            @Override
-            public void close() throws IOException {
-                socket.close();
-            }
-        });
+    public ZMQOutputStream(ZMQ.Socket socket, byte[] clientIdentity) {
         this.socket = socket;
+        this.clientIdentity = clientIdentity;
+    }
+
+    @Override
+    public void write(int b) throws IOException {
+        write(new byte[]{(byte) b}, 0, 1);
+    }
+
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        socket.sendMore(clientIdentity);
+        byte[] data = new byte[len];
+        System.arraycopy(b, off, data, 0, len);
+        socket.send(data, 0);
     }
 }
