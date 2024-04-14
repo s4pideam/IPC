@@ -13,6 +13,8 @@ import org.betriebssysteme.IPCVariants.TCP.TCPClient;
 import org.betriebssysteme.IPCVariants.TCP.TCPServer;
 import org.betriebssysteme.IPCVariants.UDS.UDSClient;
 import org.betriebssysteme.IPCVariants.UDS.UDSServer;
+import org.betriebssysteme.IPCVariants.ZMQ.ZMQClient2;
+import org.betriebssysteme.IPCVariants.ZMQ.ZMQServer2;
 import org.betriebssysteme.Plain.Single.Single;
 import org.betriebssysteme.Plain.Threaded.ThreadServer;
 
@@ -210,6 +212,46 @@ public class App {
                             //outputGobbler.start();
                             //StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR_CLIENT " + String.valueOf(i));
                             //errorGobbler.start();
+                        }
+                        for (Process process : processList) {
+                            process.waitFor();
+                        }
+                        mainThread.join();
+                        double runtimeInSeconds = (System.nanoTime() - startTime) / 1e9;
+                        System.out.println("Runtime: " + runtimeInSeconds + " s");
+                    }
+                    break;
+                }
+                case "zmq": {
+                    if (args[1].equals("c")) {
+                        // Client mode
+                        ZMQClient2 client = new ZMQClient2();
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("host", HOST);
+                        configMap.put("port", PORT);
+                        client.init(configMap);
+                        client.start();
+                    } else {
+                        // Server mode
+                        CLIENT_NUMBERS = Integer.parseInt(args[1]);
+                        CHUNK_SIZE = Integer.parseInt(args[2]);
+                        FILE_PATH = args[3];
+
+                        ZMQServer2 server = new ZMQServer2(FILE_PATH);
+                        Map<String, Object> configMap = new HashMap<>();
+                        configMap.put("port", PORT);
+                        configMap.put("chunkSize", CHUNK_SIZE);
+                        configMap.put("clientNumbers", CLIENT_NUMBERS);
+                        server.init(configMap);
+
+                        Thread mainThread = new Thread(server::start);
+                        mainThread.start();
+
+                        List<Process> processList = new ArrayList<>();
+                        for (int i = 0; i < CLIENT_NUMBERS; i++) {
+                            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "zmq", "c");
+                            Process process = processBuilder.start();
+                            processList.add(process);
                         }
                         for (Process process : processList) {
                             process.waitFor();
