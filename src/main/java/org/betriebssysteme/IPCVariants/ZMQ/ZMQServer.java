@@ -1,76 +1,88 @@
 package org.betriebssysteme.IPCVariants.ZMQ;
 
-import org.betriebssysteme.Classes.ClientStatus;
-import org.betriebssysteme.Classes.OutputStreamClientHandler;
-import org.betriebssysteme.Classes.OutputStreamServer;
-import org.betriebssysteme.Enum.EPackage;
+import org.betriebssysteme.Classes.IPCServer;
 import org.zeromq.SocketType;
 import org.zeromq.ZMQ;
 import org.zeromq.ZContext;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import org.betriebssysteme.Enum.EPackage;
 
-public class ZMQServer extends OutputStreamServer {
+public class ZMQServer extends IPCServer {
     private ZContext context;
     private ZMQ.Socket socket;
 
-    private int PORT;
-
     public ZMQServer(String filePath) {
         super(filePath);
-        this.context = new ZContext();
     }
 
     @Override
     public void init(Map<String, Object> configMap) {
-        this.PORT = (int) configMap.getOrDefault("port", 42069);
-        this.CHUNK_SIZE = Math.max((int) configMap.getOrDefault("chunkSize", 32), 32);
-        this.CLIENT_NUMBERS = Math.min((int) configMap.getOrDefault("clientNumbers", 2), 24);
-        this.offsets = this.getOffsets(CLIENT_NUMBERS, CHUNK_SIZE);
-        this.alphabetSplit = this.splitAlphabet(CLIENT_NUMBERS);
-        this.socket = context.createSocket(SocketType.ROUTER);
-        this.socket.bind("tcp://*:" + PORT);
+        int PORT = 5555;//(int) configMap.getOrDefault("port", 5555);
+        String HOST = "localhost";//(String) configMap.getOrDefault("host", "localhost");
+        context = new ZContext();
+        socket = context.createSocket(SocketType.ROUTER);
+        socket.bind("tcp://" + HOST + ":" + PORT);
     }
 
     @Override
     public void start() {
-        int currentIndex = 0;
-        try {
-            while (currentIndex < this.CLIENT_NUMBERS) {
-                // Empfange Identität des Clients und danach die Nachricht
-                byte[] clientIdentity = socket.recv(0);
-                byte[] request = socket.recv(0);
-                DataInputStream clientInputStream = new DataInputStream(new ZMQInputStream(socket, clientIdentity));
-                DataOutputStream clientOutputStream = new DataOutputStream(new ZMQOutputStream(socket, clientIdentity));
-
-                Thread thread = new Thread(
-                        new OutputStreamClientHandler(this, clientInputStream, clientOutputStream, offsets.get(currentIndex)));
-                String key = String.join("", alphabetSplit.get(currentIndex));
-                this.clientQueue.put(key, clientOutputStream);
-                this.clientThreads.put(key, thread);
-                this.clientStatus.put(clientOutputStream, new ClientStatus());
-                this.generateInitMessage(clientOutputStream, currentIndex);
-                currentIndex++;
+        while (!Thread.currentThread().isInterrupted()) {
+            byte[] clientIdentity = socket.recv(0);
+            System.out.println("received clientidentity");
+            if (clientIdentity == null){
+                System.out.println("ClientIdentity null");
+                break;
+            }
+            byte[] request = socket.recv(0);
+            System.out.println("received request");
+            if (request == null) {
+                System.out.println("Request null");
+                break;
             }
 
-            clientThreads.values().forEach(Thread::start);
-
-            for (Thread thread : clientThreads.values()) {
-                thread.join();
-            }
-
-            wordCount.entrySet().stream()
-                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                    .limit(10)
-                    .forEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            this.socket.close();
-            this.context.close();
+            Thread processThread = new Thread(() -> processRequest(clientIdentity, request));
+            processThread.start();
         }
+    }
+
+    private synchronized void processRequest(byte[] clientIdentity, byte[] request) {
+        String requestStr = new String(request, StandardCharsets.UTF_8);
+        String[] parts = requestStr.split(EPackage.STRING_DELIMITER);
+        System.out.println("RequestStr: " +requestStr);
+        EPackage header = EPackage.fromByte(Byte.parseByte(parts[0]));
+        switch (header) {
+            case INIT:
+                System.out.println("Server received init");
+                //send(clientIdentity, EPackage.INIT, null);
+                break;
+            case CONNECTED:
+                System.out.println("Client connected");
+                break;
+            case MAP:
+                System.out.println("Client finished mapping: " + parts[1]);
+                break;
+            case SHUFFLE:
+                send(clientIdentity, EPackage.REDUCE, "Shuffle data received");
+                break;
+            case REDUCE:
+                System.out.println("Reduction done by client");
+                break;
+            case MERGE:
+                System.out.println("Merge complete: " + parts[1]);
+                break;
+            case DONE:
+                send(clientIdentity, EPackage.DONE, "Processing complete");
+                break;
+            default:
+                System.err.println("Unknown message type received: " + header);
+                break;
+        }
+    }
+
+    private void send(byte[] clientIdentity, EPackage header, String message) {
+        socket.send(clientIdentity, ZMQ.SNDMORE);
+        socket.send(header.getValue() + EPackage.STRING_DELIMITER + message, 0);
     }
 }

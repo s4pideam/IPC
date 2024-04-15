@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import org.betriebssysteme.Classes.StreamGobbler;
 import org.betriebssysteme.IPCVariants.NP.NamedPipeClient;
 import org.betriebssysteme.IPCVariants.NP.NamedPipeServer;
 import org.betriebssysteme.IPCVariants.PIPE.PipeClient;
@@ -252,6 +253,10 @@ public class App {
                             ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", execPath.toString(), "zmq", "c");
                             Process process = processBuilder.start();
                             processList.add(process);
+                            StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT_CLIENT " + String.valueOf(i));
+                            outputGobbler.start();
+                            StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR_CLIENT " + String.valueOf(i));
+                            errorGobbler.start();
                         }
                         for (Process process : processList) {
                             process.waitFor();
